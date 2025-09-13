@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -e  # exit on first error
+
+CMD=$1
+shift || true
+
+case "$CMD" in
+  install)
+    # Install runtime + dev dependencies in userland
+    pip install --user -e .[dev]
+    exit 0
+    ;;
+
+  test)
+    # Run pytest with coverage and capture results
+    TMP_OUT=$(mktemp)
+    pytest --maxfail=1 --disable-warnings -q \
+           --cov=src --cov-report=term \
+           >"$TMP_OUT" 2>&1 || true
+
+    # Extract test counts
+    PASSED=$(grep -oE "[0-9]+ passed" "$TMP_OUT" | awk '{print $1}')
+    FAILED=$(grep -oE "[0-9]+ failed" "$TMP_OUT" | awk '{print $1}')
+    TOTAL=$((PASSED + FAILED))
+    COVERAGE=$(grep -oE "[0-9]+%" "$TMP_OUT" | tail -1)
+
+    echo "${PASSED}/${TOTAL} test cases passed. ${COVERAGE} line coverage achieved."
+
+    # Exit 0 if no failures, 1 otherwise
+    if [ "$FAILED" -gt 0 ]; then
+      exit 1
+    else
+      exit 0
+    fi
+    ;;
+
+  *)
+    # Treat any other arg as a URL file path and hand off to Python orchestrator
+    python -m src.main "$CMD" "$@"
+    ;;
+esac

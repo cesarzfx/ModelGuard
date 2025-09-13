@@ -1,0 +1,10 @@
+# Linting and Formatting
+flake8
+isort
+
+# Testing
+pytest
+pytest-cov
+
+# Type Checking
+mypy
