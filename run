@@ -20,14 +20,16 @@ case "$CMD" in
 
     # Extract test counts
     PASSED=$(grep -oE "[0-9]+ passed" "$TMP_OUT" | awk '{print $1}')
-    FAILED=$(grep -oE "[0-9]+ failed" "$TMP_OUT" | awk '{print $1}')
+        FAILED=$(grep -oE "[0-9]+ failed" "$TMP_OUT" | awk '{print $1}')
+        PASSED=${PASSED:-0}
+        FAILED=${FAILED:-0}
     TOTAL=$((PASSED + FAILED))
     COVERAGE=$(grep -oE "[0-9]+%" "$TMP_OUT" | tail -1)
 
     echo "${PASSED}/${TOTAL} test cases passed. ${COVERAGE} line coverage achieved."
 
     # Exit 0 if no failures, 1 otherwise
-    if [ "$FAILED" -gt 0 ]; then
+    if [ "${FAILED:-0}" -gt 0 ]; then
       exit 1
     else
       exit 0
