@@ -1,3 +1,7 @@
-"""This script prints Base Metric Module to the console."""
+class BaseMetric:
+    """Skeleton metric to be expanded later."""
+    name = "base"
 
-print("Base Metric Module")
+    def score(self, url: str) -> float:
+        # Stub score; replace with real logic later
+        return 0.0
