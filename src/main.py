@@ -6,7 +6,6 @@ import logging
 import math
 import sys
 from pathlib import Path
-from statistics import fmean
 from time import perf_counter
 
 from .logging_utils import setup_logging
