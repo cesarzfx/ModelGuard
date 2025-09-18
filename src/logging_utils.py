@@ -35,8 +35,9 @@ def _parse_level(env_val: str | None) -> str | None:
 
 
 def setup_logging() -> tuple[str, str]:
-    """
-    Configure root logging from env:
+    """Configure root logging from env.
+
+    Env:
       - LOG_LEVEL: 0/off/none/silent, 1/info, 2/debug, or standard names
       - LOG_FILE:  path to a file for logs; on failure, fall back to stderr
 
@@ -44,50 +45,40 @@ def setup_logging() -> tuple[str, str]:
         (effective_level_name, sink) where sink is 'stderr'
         or the file path.
     """
-    level_name = _parse_level(os.getenv("LOG_LEVEL"))
-    sink_desc = "stderr"
+    raw_level = os.getenv("LOG_LEVEL")
+    level = _parse_level(raw_level) or logging.INFO
 
-    root = logging.getLogger()
-    # Remove any default handlers so we fully control sinks.
+    fmt = logging.Formatter(
+        fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
+    root: logging.Logger = logging.getLogger()
     for h in list(root.handlers):
         root.removeHandler(h)
 
-    if level_name == "silent":
-        # Disable logging entirely (no stdout pollution).
-        root.setLevel(logging.CRITICAL + 1)
-        root.addHandler(logging.NullHandler())
-        return "silent", sink_desc
-
-    # Map names to logging levels; default to WARNING if invalid/unspecified.
-    name_to_level = {
-        "debug": logging.DEBUG,
-        "info": logging.INFO,
-        "warning": logging.WARNING,
-        "error": logging.ERROR,
-        "critical": logging.CRITICAL,
-    }
-    level = name_to_level.get(level_name or "warning", logging.WARNING)
-
-    fmt = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
-
-    handler = None
     log_file = os.getenv("LOG_FILE")
+
+    # >>> Changed types here: use the common base class, never None
+    handler: logging.Handler
     if log_file:
         try:
             handler = logging.FileHandler(log_file, encoding="utf-8")
-            sink_desc = log_file
-        except Exception:
-            # If the file path is invalid/unwritable,
-            # quietly fall back to stderr.
+            sink_desc = f"file:{log_file}"
+        except OSError:
             handler = logging.StreamHandler(stream=sys.stderr)
             sink_desc = "stderr"
     else:
         handler = logging.StreamHandler(stream=sys.stderr)
         sink_desc = "stderr"
+    # <<<
 
     handler.setLevel(level)
     handler.setFormatter(fmt)
     root.addHandler(handler)
-    root.setLevel(level)
 
-    return logging.getLevelName(level).lower(), sink_desc
+    # Treat "silent" (100) as higher than CRITICAL so nothing emits
+    effective_level = level if level != 100 else logging.CRITICAL + 1
+    root.setLevel(effective_level)
+
+    return logging.getLevelName(effective_level).lower(), sink_desc
