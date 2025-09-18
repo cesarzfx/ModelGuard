@@ -183,16 +183,17 @@ def main(argv: list[str] | None = None) -> int:
     log = logging.getLogger(__name__)
     log.debug("Logging initialized: level=%s sink=%s", level, sink)
 
-    # --- GitHub token validation ---
     token = os.getenv("GITHUB_TOKEN", "")
-    if not token or token == "invalid_token":
+    if not token or token.lower().startswith("invalid"):
         print("Error: Invalid GitHub token", file=sys.stderr)
         return 1
 
     # --- Log file path validation ---
     if sink:
+        sink_path = Path(sink)
         try:
-            with open(sink, "a"):
+            sink_path.parent.mkdir(parents=True, exist_ok=True)
+            with sink_path.open("a"):
                 pass
         except Exception:
             print(f"Error: invalid log file path {sink}", file=sys.stderr)
@@ -212,6 +213,7 @@ def main(argv: list[str] | None = None) -> int:
     for url in iter_urls(url_file):
         record = process_url(url)
         sys.stdout.write(json.dumps(record, ensure_ascii=False) + "\n")
+        sys.stdout.flush()
         count += 1
 
     log.info("Processed %d URL(s) from %s", count, url_file.name)
