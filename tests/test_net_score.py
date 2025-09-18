@@ -14,7 +14,7 @@ def test_normal_case():
 
 def test_empty_inputs():
     ns = NetScore("dummy")
-    assert ns.score([], {}) == 1.0
+    assert ns.score([], {}) == 0.0
 
 
 def test_only_scalar_metrics():
@@ -34,7 +34,7 @@ def test_only_size_score():
 def test_clamping_below_zero():
     ns = NetScore("dummy")
     result = ns.score([-10.0, -5.0], {"device": -2.0})
-    assert result == 1.0
+    assert result == 0.0
 
 
 def test_clamping_above_one():
