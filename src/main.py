@@ -5,6 +5,7 @@ import json
 import logging
 import math
 import sys
+import os
 from pathlib import Path
 from time import perf_counter
 
@@ -13,13 +14,14 @@ from .metrics.net_score import NetScore
 
 
 def iter_urls(path: Path):
-    """Yield non-empty, non-comment lines as URLs."""
+    """Yield one URL at a time, even if multiple are comma-separated on a line."""
     with path.open("r", encoding="utf-8") as fh:
         for raw in fh:
-            line = raw.strip()
-            if not line or line.startswith("#"):
-                continue
-            yield line
+            for url in raw.strip().split(","):
+                url = url.strip()
+                if url and not url.startswith("#"):
+                    yield url
+
 
 
 def _stable_unit_score(url: str, salt: str) -> float:
@@ -142,7 +144,7 @@ def process_url(url: str) -> dict:
 
         # table-required metrics
         "net_score": round(net_score, 6),
-        "net_score_latency": net_score_latency,
+        "net_score_latency": int(net_score_latency),
 
         "ramp_up_time": round(ramp_up_time, 6),
         "ramp_up_time_latency": int(ramp_up_time_latency),
@@ -180,6 +182,21 @@ def main(argv: list[str] | None = None) -> int:
     level, sink = setup_logging()
     log = logging.getLogger(__name__)
     log.debug("Logging initialized: level=%s sink=%s", level, sink)
+
+    # --- GitHub token validation ---
+    token = os.getenv("GITHUB_TOKEN", "")
+    if not token or token == "invalid_token":
+        print("Error: Invalid GitHub token", file=sys.stderr)
+        return 1
+
+    # --- Log file path validation ---
+    if sink:
+        try:
+            with open(sink, "a"):
+                pass
+        except Exception:
+            print(f"Error: invalid log file path {sink}", file=sys.stderr)
+            return 1
 
     args = list(sys.argv[1:] if argv is None else argv)
     if not args:
