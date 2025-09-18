@@ -6,10 +6,10 @@ import logging
 import math
 import sys
 from pathlib import Path
-from statistics import fmean
 from time import perf_counter
 
 from .logging_utils import setup_logging
+from .metrics.net_score import NetScore
 
 
 def iter_urls(path: Path):
@@ -118,15 +118,11 @@ def process_url(url: str) -> dict:
         dataset_quality,
         code_quality,
     ]
-    size_mean = fmean(size_score.values()) if size_score else 0.0
 
-    def _compute_net():
-        if not scalar_metrics and not size_score:
-            return 0.0
-        return fmean(scalar_metrics + [size_mean])
-
-    (net_score, net_score_latency) = _time_ms(_compute_net)
-    net_score = max(0.0, min(1.0, float(net_score)))
+    ns = NetScore(url)
+    (net_score, net_score_latency) = _time_ms(
+        lambda: ns.score(scalar_metrics, size_score)
+    )
 
     # Keep your earlier mini 'scores' for compatibility
     scores = {
