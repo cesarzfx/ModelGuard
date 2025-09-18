@@ -15,8 +15,9 @@ class NetScore:
         # mean of size_score values (if dict is provided)
         size_mean = fmean(size_score.values()) if size_score else 0.0
 
-        # average across all scalar metrics + size_mean
-        result = fmean(scalar_metrics + [size_mean])
-
+        if size_score:
+            result = fmean(scalar_metrics + [size_mean])
+        else:
+            result = fmean(scalar_metrics)
         # clamp to [0,1]
         return max(0.0, min(1.0, float(result)))
