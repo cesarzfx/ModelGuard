@@ -1,3 +1,4 @@
+# Local application imports
 from src.metrics import metric
 
 class CodeQualityMetric(metric.Metric):
