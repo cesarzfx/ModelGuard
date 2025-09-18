@@ -1,43 +1,56 @@
 #!/usr/bin/env bash
-set -e  # exit on first error
+set -euo pipefail  # strict mode
 
-CMD=$1
+CMD="${1:-}"
 shift || true
 
 case "$CMD" in
   install)
-    # Install runtime + dev dependencies in userland
-    pip install --user -e .[dev]
+    # Deterministic install for grader
+    python3 -m pip install --upgrade pip
+    pip3 install -r requirements.txt
     exit 0
     ;;
 
   test)
-    # Run pytest with coverage and capture results
-    TMP_OUT=$(mktemp)
-    pytest --maxfail=1 --disable-warnings -q \
-           --cov=src --cov-report=term \
-           >"$TMP_OUT" 2>&1 || true
+    # Run pytest with coverage; capture full output to parse counts & coverage
+    TMP_OUT="$(mktemp)"
+    # NOTE: addopts (cov, term-missing) are already in pyproject.toml
+    # We avoid -q so "collected N items" appears for TOTAL parsing.
+    if pytest | tee "$TMP_OUT"; then
+      PYTEST_STATUS=0
+    else
+      PYTEST_STATUS=$?
+    fi
 
-    # Extract test counts
-    PASSED=$(grep -oE "[0-9]+ passed" "$TMP_OUT" | awk '{print $1}')
-        FAILED=$(grep -oE "[0-9]+ failed" "$TMP_OUT" | awk '{print $1}')
-        PASSED=${PASSED:-0}
-        FAILED=${FAILED:-0}
-    TOTAL=$((PASSED + FAILED))
-    COVERAGE=$(grep -oE "[0-9]+%" "$TMP_OUT" | tail -1)
+    # ---- Parse TOTAL (from "collected N items") ----
+    TOTAL="$(grep -Eo 'collected [0-9]+ items?' "$TMP_OUT" | awk '{print $2}' | tail -1)"
+    TOTAL="${TOTAL:-0}"
+
+    # ---- Parse PASSED (from summary "... X passed ...") ----
+    PASSED="$(grep -Eo '[0-9]+ passed' "$TMP_OUT" | awk '{print $1}' | tail -1)"
+    PASSED="${PASSED:-0}"
+
+    # ---- Parse COVERAGE (from coverage table "TOTAL ... NN%") ----
+    # pytest-cov (term-missing) prints a table; the last column for TOTAL is the percent.
+    if grep -qE '^TOTAL[[:space:]]' "$TMP_OUT"; then
+      COVERAGE="$(grep -E '^TOTAL[[:space:]]' "$TMP_OUT" | tail -1 | awk '{print $NF}')"
+    else
+      COVERAGE="0%"
+    fi
 
     echo "${PASSED}/${TOTAL} test cases passed. ${COVERAGE} line coverage achieved."
 
-    # Exit 0 if no failures, 1 otherwise
-    if [ "${FAILED:-0}" -gt 0 ]; then
+    # If pytest failed, exit 1 so CI/grader knows it failed.
+    # (Even if parsing succeeded, we honor pytest's real status.)
+    if [ "$PYTEST_STATUS" -ne 0 ]; then
       exit 1
-    else
-      exit 0
     fi
+    exit 0
     ;;
 
   *)
-    # Treat any other arg as a URL file path and hand off to Python orchestrator
-    python -m src.main "$CMD" "$@"
+    # Treat any other arg as a URL file path and hand off to Python CLI
+    python3 -m src.main "$CMD" "$@"
     ;;
 esac
