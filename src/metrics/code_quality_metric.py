@@ -11,4 +11,3 @@ class CodeQualityMetric(metric.Metric):
     ) -> float:
         # Placeholder for actual code quality evaluation logic
         return 0.0
-    
