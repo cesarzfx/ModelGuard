@@ -142,7 +142,7 @@ def process_url(url: str) -> dict:
 
         # table-required metrics
         "net_score": round(net_score, 6),
-        "net_score_latency": int(net_score_latency),
+        "net_score_latency": net_score_latency,
 
         "ramp_up_time": round(ramp_up_time, 6),
         "ramp_up_time_latency": int(ramp_up_time_latency),
