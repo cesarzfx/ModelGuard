@@ -14,14 +14,14 @@ from .metrics.net_score import NetScore
 
 
 def iter_urls(path: Path):
-    """Yield one URL at a time, even if multiple are comma-separated on a line."""
+    """Yield one URL at a time, even if multiple
+    are comma-separated on a line."""
     with path.open("r", encoding="utf-8") as fh:
         for raw in fh:
             for url in raw.strip().split(","):
                 url = url.strip()
                 if url and not url.startswith("#"):
                     yield url
-
 
 
 def _stable_unit_score(url: str, salt: str) -> float:
