@@ -22,4 +22,3 @@ class NetScore:
 
         # clamp to [0, 1]
         return max(0.0, min(1.0, float(result)))
-
