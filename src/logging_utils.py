@@ -6,7 +6,9 @@ import sys
 
 
 def _parse_level(env_val: str | None) -> str | None:
-    """Return one of {'silent','debug','info','warning','error','critical'} or None."""
+    """Return one of {'silent','debug','info','warning','error','critical'}
+    or None.
+    """
     if env_val is None:
         return None
     val = env_val.strip().lower()
@@ -38,7 +40,9 @@ def setup_logging() -> tuple[str, str]:
       - LOG_LEVEL: 0/off/none/silent, 1/info, 2/debug, or standard names
       - LOG_FILE:  path to a file for logs; on failure, fall back to stderr
 
-    Returns (effective_level_name, sink) where sink is 'stderr' or the file path.
+    Returns:
+        (effective_level_name, sink) where sink is 'stderr'
+        or the file path.
     """
     level_name = _parse_level(os.getenv("LOG_LEVEL"))
     sink_desc = "stderr"
@@ -73,7 +77,8 @@ def setup_logging() -> tuple[str, str]:
             handler = logging.FileHandler(log_file, encoding="utf-8")
             sink_desc = log_file
         except Exception:
-            # If the file path is invalid/unwritable, quietly fall back to stderr.
+            # If the file path is invalid/unwritable,
+            # quietly fall back to stderr.
             handler = logging.StreamHandler(stream=sys.stderr)
             sink_desc = "stderr"
     else:
