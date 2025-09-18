@@ -66,19 +66,27 @@ def process_url(url: str) -> dict:
     name, category = _infer_name_category(url)
 
     # Core scalar metrics (deterministic)
-    (ramp_up_time, ramp_up_time_latency) = _time_ms(lambda: _stable_unit_score(url, "ramp_up_time"))
-    (bus_factor, bus_factor_latency) = _time_ms(lambda: _stable_unit_score(url, "bus_factor"))
+    (ramp_up_time, ramp_up_time_latency) = _time_ms(
+        lambda: _stable_unit_score(url, "ramp_up_time")
+    )
+    (bus_factor, bus_factor_latency) = _time_ms(
+        lambda: _stable_unit_score(url, "bus_factor")
+    )
     (performance_claims, performance_claims_latency) = _time_ms(
         lambda: _stable_unit_score(url, "performance_claims")
     )
-    (license_score, license_latency) = _time_ms(lambda: _stable_unit_score(url, "license"))
+    (license_score, license_latency) = _time_ms(
+        lambda: _stable_unit_score(url, "license")
+    )
     (dataset_and_code_score, dataset_and_code_score_latency) = _time_ms(
         lambda: _stable_unit_score(url, "dataset_and_code_score")
     )
     (dataset_quality, dataset_quality_latency) = _time_ms(
         lambda: _stable_unit_score(url, "dataset_quality")
     )
-    (code_quality, code_quality_latency) = _time_ms(lambda: _stable_unit_score(url, "code_quality"))
+    (code_quality, code_quality_latency) = _time_ms(
+        lambda: _stable_unit_score(url, "code_quality")
+    )
 
     # size_score is a dict of device->score
     def _build_size():
@@ -91,7 +99,8 @@ def process_url(url: str) -> dict:
 
     (size_score, size_score_latency) = _time_ms(_build_size)
 
-    # net_score is the average of all scalar metrics plus the mean of the size_score values
+    # net_score is the average of all scalar metrics plus 
+    # the mean of the size_score values
     scalar_metrics = [
         ramp_up_time,
         bus_factor,
@@ -179,11 +188,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     count = 0
-    with url_file.open("r", encoding="utf-8") as fh:
-        for url in iter_urls(url_file):
-            record = process_url(url)
-            sys.stdout.write(json.dumps(record, ensure_ascii=False) + "\n")
-            count += 1
+    for url in iter_urls(url_file):
+        record = process_url(url)
+        sys.stdout.write(json.dumps(record, ensure_ascii=False) + "\n")
+        count += 1
 
     log.info("Processed %d URL(s) from %s", count, url_file.name)
     return 0
