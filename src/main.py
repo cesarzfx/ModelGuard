@@ -119,7 +119,6 @@ def process_url(url: str) -> dict:
         dataset_quality,
         code_quality,
     ]
-    size_mean = fmean(size_score.values()) if size_score else 0.0
 
     ns = NetScore(url)
     (net_score, net_score_latency) = _time_ms(
