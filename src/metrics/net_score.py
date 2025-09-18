@@ -8,7 +8,8 @@ class NetScore:
     def __init__(self, url: str):
         self.url = url
 
-    def score(self, scalar_metrics: list[float], size_score: dict[str, float]) -> float:
+    def score(self, scalar_metrics: list[float],
+              size_score: dict[str, float]) -> float:
         if not scalar_metrics and not size_score:
             return 0.0
 

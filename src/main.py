@@ -122,7 +122,9 @@ def process_url(url: str) -> dict:
     size_mean = fmean(size_score.values()) if size_score else 0.0
 
     ns = NetScore(url)
-    (net_score, net_score_latency) = _time_ms(lambda: ns.score(scalar_metrics, size_score))
+    (net_score, net_score_latency) = _time_ms(
+        lambda: ns.score(scalar_metrics, size_score)
+    )
 
     # Keep your earlier mini 'scores' for compatibility
     scores = {
