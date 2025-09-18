@@ -1,84 +1,87 @@
+# src/logging_utils.py
 from __future__ import annotations
 
 import logging
 import os
 import sys
 
+# Higher than CRITICAL; used to represent "silent".
+_SILENT_SENTINEL = 100
 
-def _parse_level(env_val: str | None) -> str | None:
-    """Return one of {'silent','debug','info','warning','error','critical'}
-    or None.
+
+def _parse_level(raw: str | None) -> int | None:
+    """Map env text to a logging level int or the silent sentinel.
+
+    Accepts:
+      - 0/off/none/silent -> silent
+      - 1 -> INFO
+      - 2 -> DEBUG
+      - debug|info|warn|warning|error|critical
     """
-    if env_val is None:
+    if raw is None:
         return None
-    val = env_val.strip().lower()
 
-    # numeric shortcuts per spec
-    if val in {"0", "off", "none"}:
-        return "silent"
-    if val in {"1"}:
-        return "info"
-    if val in {"2"}:
-        return "debug"
+    val = raw.strip().lower()
 
-    # common names
+    if val in {"0", "off", "none", "silent"}:
+        return _SILENT_SENTINEL
+    if val == "1":
+        return logging.INFO
+    if val == "2":
+        return logging.DEBUG
+
     aliases = {
-        "silent": "silent",
-        "debug": "debug",
-        "info": "info",
-        "warn": "warning",
-        "warning": "warning",
-        "error": "error",
-        "critical": "critical",
+        "debug": logging.DEBUG,
+        "info": logging.INFO,
+        "warn": logging.WARNING,
+        "warning": logging.WARNING,
+        "error": logging.ERROR,
+        "critical": logging.CRITICAL,
     }
     return aliases.get(val)
 
 
 def setup_logging() -> tuple[str, str]:
-    """Configure root logging from env.
+    """Configure logging from LOG_LEVEL and LOG_FILE.
 
-    Env:
-      - LOG_LEVEL: 0/off/none/silent, 1/info, 2/debug, or standard names
-      - LOG_FILE:  path to a file for logs; on failure, fall back to stderr
-
-    Returns:
-        (effective_level_name, sink) where sink is 'stderr'
-        or the file path.
+    Returns a pair (level_name, sink) where sink is 'stderr' or a path.
     """
-    raw_level = os.getenv("LOG_LEVEL")
-    level = _parse_level(raw_level) or logging.INFO
+    parsed = _parse_level(os.getenv("LOG_LEVEL"))
+    # Default WARNING keeps noise low. Change to INFO if you prefer.
+    level = logging.WARNING if parsed is None else parsed
 
-    fmt = logging.Formatter(
-        fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-        datefmt="%H:%M:%S",
-    )
-
-    root: logging.Logger = logging.getLogger()
+    # Reset handlers so we control sinks deterministically.
+    root = logging.getLogger()
     for h in list(root.handlers):
         root.removeHandler(h)
 
     log_file = os.getenv("LOG_FILE")
-
-    # >>> Changed types here: use the common base class, never None
-    handler: logging.Handler
-    if log_file:
-        try:
-            handler = logging.FileHandler(log_file, encoding="utf-8")
-            sink_desc = f"file:{log_file}"
-        except OSError:
+    try:
+        if log_file:
+            handler: logging.Handler = logging.FileHandler(
+                log_file, encoding="utf-8"
+            )
+            sink_desc = log_file
+        else:
             handler = logging.StreamHandler(stream=sys.stderr)
             sink_desc = "stderr"
-    else:
+    except OSError:
         handler = logging.StreamHandler(stream=sys.stderr)
         sink_desc = "stderr"
-    # <<<
+
+    fmt = logging.Formatter(
+        "%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
+    handler.setFormatter(fmt)
+
+    # Silent mode: attach a handler but raise the root level above CRITICAL.
+    if level == _SILENT_SENTINEL:
+        root.addHandler(handler)
+        root.setLevel(logging.CRITICAL + 1)
+        return "silent", sink_desc
 
     handler.setLevel(level)
-    handler.setFormatter(fmt)
     root.addHandler(handler)
+    root.setLevel(level)
 
-    # Treat "silent" (100) as higher than CRITICAL so nothing emits
-    effective_level = level if level != 100 else logging.CRITICAL + 1
-    root.setLevel(effective_level)
-
-    return logging.getLevelName(effective_level).lower(), sink_desc
+    return logging.getLevelName(level).lower(), sink_desc
