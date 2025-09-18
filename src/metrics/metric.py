@@ -1,4 +1,4 @@
-class BaseMetric:
+class Metric:
     """Skeleton metric to be expanded later."""
     name = "base"
 
