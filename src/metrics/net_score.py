@@ -11,10 +11,10 @@ class NetScore:
     def score(self, scalar_metrics: list[float],
               size_score: dict[str, float]) -> float:
         if not scalar_metrics and not size_score:
-            return 0.0
+            return 1.0
 
         # mean of size_score values (if dict is provided)
-        size_mean = fmean(size_score.values()) if size_score else 0.0
+        size_mean = fmean(size_score.values()) if size_score else 1.0
 
         if size_score:
             result = fmean(scalar_metrics + [size_mean])
