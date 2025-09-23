@@ -71,10 +71,18 @@ def _score_components(url: str) -> dict:
 
     t0 = perf_counter()
     size_score = {
-        "raspberry_pi": _stable_unit_score(url, "size_score::raspberry_pi"),
-        "jetson_nano": _stable_unit_score(url, "size_score::jetson_nano"),
-        "desktop_pc": _stable_unit_score(url, "size_score::desktop_pc"),
-        "aws_server": _stable_unit_score(url, "size_score::aws_server"),
+        "raspberry_pi": _stable_unit_score(
+            url, "size_score::raspberry_pi"
+        ),
+        "jetson_nano": _stable_unit_score(
+            url, "size_score::jetson_nano"
+        ),
+        "desktop_pc": _stable_unit_score(
+            url, "size_score::desktop_pc"
+        ),
+        "aws_server": _stable_unit_score(
+            url, "size_score::aws_server"
+        ),
     }
     out["size_score"] = {
         k: max(0.0, min(1.0, float(v))) for k, v in size_score.items()
@@ -123,12 +131,16 @@ def process_url(url: str) -> dict:
             k: round(v, 6) for k, v in comps["size_score"].items()
         },
         "size_score_latency": int(comps["size_score_latency"]),
-        "dataset_and_code_score": round(comps["dataset_and_code_score"], 6),
+        "dataset_and_code_score": round(
+            comps["dataset_and_code_score"], 6
+        ),
         "dataset_and_code_score_latency": int(
             comps["dataset_and_code_score_latency"]
         ),
         "dataset_quality": round(comps["dataset_quality"], 6),
-        "dataset_quality_latency": int(comps["dataset_quality_latency"]),
+        "dataset_quality_latency": int(
+            comps["dataset_quality_latency"]
+        ),
         "code_quality": round(comps["code_quality"], 6),
         "code_quality_latency": int(comps["code_quality_latency"]),
         "scores": {
@@ -175,7 +187,9 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(rec, ensure_ascii=False), flush=True)
         return 0
 
-    url_file = Path(args.url_file or args.positional_file)
+    url_file = Path(
+        args.url_file or args.positional_file
+    )
     if not url_file.exists():
         print(f"Error: file not found: {url_file}", file=sys.stderr)
         return 2
