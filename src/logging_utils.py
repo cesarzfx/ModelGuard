@@ -61,7 +61,8 @@ def setup_logging() -> logging.Logger:
     # Optional file handler
     if log_file:
         try:
-            # Validate directory exists and is writable before creating FileHandler
+            # Validate directory exists and is 
+            # writable before creating FileHandler
             dirpath = os.path.dirname(log_file) or "."
             if not os.path.isdir(dirpath):
                 raise FileNotFoundError(dirpath)
