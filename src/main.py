@@ -60,7 +60,6 @@ def process_url(url: str) -> dict:
       - all *_latency fields are integers in ms
       - all scores are in [0,1]
       - net_score is the mean of scalar metrics + mean(size_score.values())
-    Also retains earlier fields: url, scores, latency, latency_ms
     """
     overall_t0 = perf_counter()
 
@@ -124,7 +123,8 @@ def process_url(url: str) -> dict:
         "quality": _stable_unit_score(url, "quality"),
     }
 
-    overall_latency_s = perf_counter() - overall_t0
+    overall_latency_ms = int(math.floor((perf_counter() - overall_t0) * 1000))
+
     record = {
         "url": url,
         "name": name,
@@ -148,9 +148,9 @@ def process_url(url: str) -> dict:
         "code_quality": round(code_quality, 6),
         "code_quality_latency": int(code_quality_latency),
         "scores": scores,
-        # clamp latency into [0,1] to satisfy autograder
-        "latency": max(0.0, min(1.0, round(overall_latency_s, 6))),
-        "latency_ms": int(math.floor(overall_latency_s * 1000)),
+        # both latency values are integers in ms
+        "latency": overall_latency_ms,
+        "latency_ms": overall_latency_ms,
     }
     return record
 
@@ -169,7 +169,7 @@ def main(argv: list[str] | None = None) -> int:
     if sink:
         try:
             os.makedirs(os.path.dirname(sink), exist_ok=True)
-            with open(sink, "a"):  # append mode creates file if needed
+            with open(sink, "a"):  # append mode creates file if missing
                 pass
         except Exception:
             print("Error: Invalid log file path", file=sys.stderr)
@@ -186,7 +186,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     count = 0
-    for url in iter_urls(url_file):   # ✅ use iter_urls now
+    for url in iter_urls(url_file):
         record = process_url(url)
         print(json.dumps(record, ensure_ascii=False), flush=True)
         count += 1
