@@ -168,7 +168,9 @@ def main(argv: list[str] | None = None) -> int:
     # --- Log file path validation ---
     if sink:
         try:
-            os.makedirs(os.path.dirname(sink), exist_ok=True)
+            dir_path = os.path.dirname(sink)
+            if dir_path:
+                os.makedirs(dir_path, exist_ok=True)
             with open(sink, "a"):  # append mode creates file if missing
                 pass
         except Exception:
