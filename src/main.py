@@ -190,13 +190,12 @@ def main(argv: list[str] | None = None) -> int:
 
     # --- Log file path validation ---
     if sink:
-        sink_path = Path(sink)
         try:
-            sink_path.parent.mkdir(parents=True, exist_ok=True)
-            with sink_path.open("a"):
+            # don’t mkdir, just try to open the file as-is
+            with open(sink, "a"):
                 pass
         except Exception:
-            print(f"Error: invalid log file path {sink}", file=sys.stderr)
+            print("Error: invalid log file path", file=sys.stderr)
             return 1
 
     args = list(sys.argv[1:] if argv is None else argv)
@@ -211,10 +210,16 @@ def main(argv: list[str] | None = None) -> int:
 
     count = 0
     for url in iter_urls(url_file):
+        if not url:  # skip blank lines
+            continue
         record = process_url(url)
         sys.stdout.write(json.dumps(record, ensure_ascii=False) + "\n")
         sys.stdout.flush()
         count += 1
+
+    if count == 0:
+        print("Error: no valid URLs processed", file=sys.stderr)
+        return 1
 
     log.info("Processed %d URL(s) from %s", count, url_file.name)
     return 0
