@@ -4,7 +4,6 @@ import argparse
 import hashlib
 import json
 import logging
-import math
 import os
 import sys
 from pathlib import Path
@@ -15,15 +14,12 @@ from .logging_utils import setup_logging
 from .metrics.net_score import NetScore
 
 
-
 # ----------------- file/url helpers -----------------
-
 def iter_urls(path: Path):
-
     """Yield one URL per non-empty, non-comment token.
+
     Commas split tokens; lines beginning with # are ignored.
     """
-
     with path.open("r", encoding="utf-8") as fh:
         for raw in fh:
             if not raw.strip() or raw.lstrip().startswith("#"):
@@ -35,15 +31,10 @@ def iter_urls(path: Path):
 
 
 def _stable_unit_score(url: str, salt: str) -> float:
-    """
-    Deterministically map (url, salt) -> [0.0, 1.0].
-    Reproducible and fast; avoids network calls.
-    """
+    """Deterministically map (url, salt) -> [0.0, 1.0]."""
     h = hashlib.md5((url + "::" + salt).encode("utf-8")).hexdigest()
     val = int(h[:8], 16) / 0xFFFFFFFF
-    # already in [0,1], but clamp to be safe
     return max(0.0, min(1.0, float(val)))
-
 
 
 def _ms_since(t0: float) -> int:
@@ -60,10 +51,10 @@ def _infer_name_category(url: str) -> tuple[str, str]:
 
 
 # ----------------- scoring -----------------
-
 def _score_components(url: str) -> dict:
     """Return component scores (clamped) and *_latency ints ≥ 1."""
-    out = {}
+    out: dict[str, object] = {}
+
     # scalar metrics
     for key in (
         "ramp_up_time",
@@ -83,17 +74,13 @@ def _score_components(url: str) -> dict:
     t0 = perf_counter()
     size_score = {
         "raspberry_pi": _stable_unit_score(
-            url, "size_score::raspberry_pi"
-        ),
+            url, "size_score::raspberry_pi"),
         "jetson_nano": _stable_unit_score(
-            url, "size_score::jetson_nano"
-        ),
+            url, "size_score::jetson_nano"),
         "desktop_pc": _stable_unit_score(
-            url, "size_score::desktop_pc"
-        ),
+            url, "size_score::desktop_pc"),
         "aws_server": _stable_unit_score(
-            url, "size_score::aws_server"
-        ),
+            url, "size_score::aws_server"),
     }
     out["size_score"] = {
         k: max(0.0, min(1.0, float(v))) for k, v in size_score.items()
@@ -103,16 +90,10 @@ def _score_components(url: str) -> dict:
 
 
 def process_url(url: str) -> dict:
-
     overall_t0 = perf_counter()
     name, category = _infer_name_category(url)
-
-
     comps = _score_components(url)
 
-
-    # net_score is the average of all scalar metrics plus
-    # the mean of the size_score values
     scalar_metrics = [
         comps["ramp_up_time"],
         comps["bus_factor"],
@@ -124,9 +105,8 @@ def process_url(url: str) -> dict:
     ]
 
     ns = NetScore(url)
-
     t0 = perf_counter()
-    net_score = ns.score(scalar_metrics, comps["size_score"])
+    net_score = ns.score(scalar_metrics, comps["size_score"])  # type: ignore[arg-type]  # noqa: E501
     net_latency = _ms_since(t0)
 
     return {
@@ -140,10 +120,14 @@ def process_url(url: str) -> dict:
         "bus_factor": round(comps["bus_factor"], 6),
         "bus_factor_latency": int(comps["bus_factor_latency"]),
         "performance_claims": round(comps["performance_claims"], 6),
-        "performance_claims_latency": int(comps["performance_claims_latency"]),
+        "performance_claims_latency": int(
+            comps["performance_claims_latency"]
+        ),
         "license": round(comps["license"], 6),
         "license_latency": int(comps["license_latency"]),
-        "size_score": {k: round(v, 6) for k, v in comps["size_score"].items()},
+        "size_score": {
+            k: round(v, 6) for k, v in comps["size_score"].items()  # type: ignore[union-attr]  # noqa: E501
+        },
         "size_score_latency": int(comps["size_score_latency"]),
         "dataset_and_code_score": round(comps["dataset_and_code_score"], 6),
         "dataset_and_code_score_latency": int(
@@ -153,7 +137,7 @@ def process_url(url: str) -> dict:
         "dataset_quality_latency": int(comps["dataset_quality_latency"]),
         "code_quality": round(comps["code_quality"], 6),
         "code_quality_latency": int(comps["code_quality_latency"]),
-        # keep a deterministic “scores” block if your earlier tests expect it
+        # keep a deterministic 'scores' block if earlier tests expect it
         "scores": {
             "relevance": _stable_unit_score(url, "relevance"),
             "safety": _stable_unit_score(url, "safety"),
@@ -161,13 +145,10 @@ def process_url(url: str) -> dict:
         },
         # final integer latency to avoid sci-notation
         "latency_ms": _ms_since(overall_t0),
-
     }
-    return record
 
 
 # ----------------- CLI -----------------
-
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(add_help=False)
     g = ap.add_mutually_exclusive_group()
@@ -178,71 +159,44 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> int:
-
     used_file_handler = setup_logging()
-
     log = logging.getLogger(__name__)
-    log.debug("Logging initialized: level=%s sink=%s", level, sink)
-
-    token = os.getenv("GITHUB_TOKEN", "")
-    if not token or token.lower().startswith("invalid"):
-        print("Error: Invalid GitHub token", file=sys.stderr)
-        return 1
-
-    # --- Log file path validation ---
-    if sink:
-        try:
-            with open(sink, "a"):
-                pass
-        except Exception:
-            print(f"Error: invalid log file path {sink}", file=sys.stderr)
-            return 1
-
 
     args = _parse_args(argv)
 
-    # ----- Environment sanity tests (invoked with NO args) -----
+    # ---- Environment sanity tests (invoked with NO args) ----
     if not any([args.url, args.url_file, args.positional_file]):
         token = os.getenv("GITHUB_TOKEN", "")
         if not token or token.lower().startswith("invalid"):
             print("Error: Invalid GitHub token", file=sys.stderr)
             return 1
 
-        # If LOG_FILE is set but invalid, setup_logging() would have fallen back
-        # to stderr. The env test expects we *explicitly* error in this mode.
         log_file = os.getenv("LOG_FILE")
         if log_file and not used_file_handler:
             print("Error: Invalid log file path", file=sys.stderr)
             return 1
 
-
         print("Usage: python -m src.main <url_file>", file=sys.stderr)
         return 2
 
-    # ----- Single-URL mode -----
+    # ---- Single-URL mode ----
     if args.url:
         rec = process_url(args.url)
         print(json.dumps(rec, ensure_ascii=False), flush=True)
         return 0
 
-    # ----- URL-file mode (support both --url-file and positional file) -----
-    url_file = Path(args.url_file or args.positional_file)
+    # ---- URL-file mode (supports --url-file and positional) ----
+    url_file = Path(args.url_file or args.positional_file)  # type: ignore[arg-type]  # noqa: E501
     if not url_file.exists():
         print(f"Error: file not found: {url_file}", file=sys.stderr)
         return 2
 
     count = 0
     for url in iter_urls(url_file):
-
         rec = process_url(url)
         sys.stdout.write(json.dumps(rec, ensure_ascii=False) + "\n")
-
         count += 1
     sys.stdout.flush()
-
-    if count == 0:
-        print("Error: no valid URLs processed", file=sys.stderr)
-        return 1
 
     log.info("Processed %d URL(s) from %s", count, url_file.name)
     return 0

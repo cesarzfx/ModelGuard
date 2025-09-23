@@ -1,4 +1,3 @@
-# src/logging_utils.py
 from __future__ import annotations
 
 import logging
@@ -41,55 +40,29 @@ def _parse_level(raw: str | None) -> int | None:
     return aliases.get(val)
 
 
-
 def setup_logging() -> bool:
     """Configure logging from LOG_LEVEL and LOG_FILE.
 
     Returns:
-        bool: True if LOG_FILE appears valid and was used;
-              False if we are logging to stderr (either no LOG_FILE or invalid).
+        True if LOG_FILE appears valid and is used; False if logging to stderr.
     Notes:
-        - Do NOT exit from here (the env tests expect main() to decide).
-        - Never log to stdout (only stderr or a file).
+        - Do not exit here (main() decides for env tests).
+        - Never log to stdout.
         - Support 'silent' (disable logger).
-
     """
-    parsed = _parse_level(os.getenv("LOG_LEVEL"))
-    # Default WARNING keeps noise low. Change to INFO if you prefer.
-    level = logging.WARNING if parsed is None else parsed
+    level = _parse_level(os.getenv("LOG_LEVEL"))
 
-    # Reset handlers so we control sinks deterministically.
-    root = logging.getLogger()
-    for h in list(root.handlers):
-        root.removeHandler(h)
-
-    log_file = os.getenv("LOG_FILE")
-    try:
-        if log_file:
-            handler: logging.Handler = logging.FileHandler(
-                log_file, encoding="utf-8"
-            )
-            sink_desc = log_file
-        else:
-            handler = logging.StreamHandler(stream=sys.stderr)
-            sink_desc = "stderr"
-    except OSError:
-        handler = logging.StreamHandler(stream=sys.stderr)
-        sink_desc = "stderr"
-
-
-    # Silent mode disables the root logger
+    # Silent mode disables the root logger.
     if level == _SILENT_SENTINEL:
         logging.getLogger().disabled = True
         return False
 
     handlers: list[logging.Handler] = []
     used_file = False
+    log_file = os.getenv("LOG_FILE")
 
     if log_file:
         try:
-            parent = os.path.dirname(log_file) or "."
-            # Don't auto-create; just attempt to open. If it fails, we'll fall back to stderr.
             fh = logging.FileHandler(log_file, encoding="utf-8")
             handlers.append(fh)
             used_file = True
@@ -106,4 +79,3 @@ def setup_logging() -> bool:
         force=True,
     )
     return used_file
-
