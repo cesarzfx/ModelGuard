@@ -1,3 +1,4 @@
+# src/logging_utils.py
 from __future__ import annotations
 
 import logging
@@ -40,42 +41,47 @@ def _parse_level(raw: str | None) -> int | None:
     return aliases.get(val)
 
 
-def setup_logging() -> bool:
+def setup_logging() -> tuple[str, str]:
     """Configure logging from LOG_LEVEL and LOG_FILE.
 
-    Returns:
-        True if LOG_FILE appears valid and is used; False if logging to stderr.
-    Notes:
-        - Do not exit here (main() decides for env tests).
-        - Never log to stdout.
-        - Support 'silent' (disable logger).
+    Returns a pair (level_name, sink) where sink is 'stderr' or a path.
     """
-    level = _parse_level(os.getenv("LOG_LEVEL"))
+    parsed = _parse_level(os.getenv("LOG_LEVEL"))
+    # Default WARNING keeps noise low. Change to INFO if you prefer.
+    level = logging.WARNING if parsed is None else parsed
 
-    # Silent mode disables the root logger.
-    if level == _SILENT_SENTINEL:
-        logging.getLogger().disabled = True
-        return False
+    # Reset handlers so we control sinks deterministically.
+    root = logging.getLogger()
+    for h in list(root.handlers):
+        root.removeHandler(h)
 
-    handlers: list[logging.Handler] = []
-    used_file = False
     log_file = os.getenv("LOG_FILE")
+    try:
+        if log_file:
+            handler: logging.Handler = logging.FileHandler(
+                log_file, encoding="utf-8"
+            )
+            sink_desc = log_file
+        else:
+            handler = logging.StreamHandler(stream=sys.stderr)
+            sink_desc = "stderr"
+    except OSError:
+        handler = logging.StreamHandler(stream=sys.stderr)
+        sink_desc = "stderr"
 
-    if log_file:
-        try:
-            fh = logging.FileHandler(log_file, encoding="utf-8")
-            handlers.append(fh)
-            used_file = True
-        except Exception:
-            handlers.append(logging.StreamHandler(sys.stderr))
-            used_file = False
-    else:
-        handlers.append(logging.StreamHandler(sys.stderr))
-
-    logging.basicConfig(
-        level=level or logging.INFO,
-        handlers=handlers,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-        force=True,
+    fmt = logging.Formatter(
+        "%(asctime)s %(levelname)s %(name)s: %(message)s"
     )
-    return used_file
+    handler.setFormatter(fmt)
+
+    # Silent mode: attach a handler but raise the root level above CRITICAL.
+    if level == _SILENT_SENTINEL:
+        root.addHandler(handler)
+        root.setLevel(logging.CRITICAL + 1)
+        return "silent", sink_desc
+
+    handler.setLevel(level)
+    root.addHandler(handler)
+    root.setLevel(level)
+
+    return logging.getLevelName(level).lower(), sink_desc
