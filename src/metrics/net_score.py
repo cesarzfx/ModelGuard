@@ -2,7 +2,6 @@ from statistics import fmean
 
 
 class NetScore:
-
     name = "net_score"
 
     def __init__(self, url: str):

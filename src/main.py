@@ -135,42 +135,27 @@ def process_url(url: str) -> dict:
 
     overall_latency_s = perf_counter() - overall_t0
     record = {
-        # helpful context (not in the table but safe)
         "url": url,
-
-        # table-required identity
         "name": name,
         "category": category,
-
-        # table-required metrics
         "net_score": round(net_score, 6),
         "net_score_latency": int(net_score_latency),
-
         "ramp_up_time": round(ramp_up_time, 6),
         "ramp_up_time_latency": int(ramp_up_time_latency),
-
         "bus_factor": round(bus_factor, 6),
         "bus_factor_latency": int(bus_factor_latency),
-
         "performance_claims": round(performance_claims, 6),
         "performance_claims_latency": int(performance_claims_latency),
-
         "license": round(license_score, 6),
         "license_latency": int(license_latency),
-
         "size_score": {k: round(v, 6) for k, v in size_score.items()},
         "size_score_latency": int(size_score_latency),
-
         "dataset_and_code_score": round(dataset_and_code_score, 6),
         "dataset_and_code_score_latency": int(dataset_and_code_score_latency),
-
         "dataset_quality": round(dataset_quality, 6),
         "dataset_quality_latency": int(dataset_quality_latency),
-
         "code_quality": round(code_quality, 6),
         "code_quality_latency": int(code_quality_latency),
-
-        # compatibility with your earlier basic tests
         "scores": scores,
         "latency": round(overall_latency_s, 6),
         "latency_ms": int(math.floor(overall_latency_s * 1000)),
@@ -191,11 +176,10 @@ def main(argv: list[str] | None = None) -> int:
     # --- Log file path validation ---
     if sink:
         try:
-            # don’t mkdir, just try to open the file as-is
             with open(sink, "a"):
                 pass
         except Exception:
-            print("Error: invalid log file path", file=sys.stderr)
+            print(f"Error: invalid log file path {sink}", file=sys.stderr)
             return 1
 
     args = list(sys.argv[1:] if argv is None else argv)
@@ -210,11 +194,10 @@ def main(argv: list[str] | None = None) -> int:
 
     count = 0
     for url in iter_urls(url_file):
-        if not url:  # skip blank lines
+        if not url:
             continue
         record = process_url(url)
-        sys.stdout.write(json.dumps(record, ensure_ascii=False) + "\n")
-        sys.stdout.flush()
+        print(json.dumps(record, ensure_ascii=False), flush=True)
         count += 1
 
     if count == 0:
