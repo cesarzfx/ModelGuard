@@ -91,10 +91,14 @@ def process_url(url: str) -> dict:
     # size_score is a dict of device->score
     def _build_size():
         return {
-            "raspberry_pi": _stable_unit_score(url, "size_score::raspberry_pi"),
-            "jetson_nano": _stable_unit_score(url, "size_score::jetson_nano"),
-            "desktop_pc": _stable_unit_score(url, "size_score::desktop_pc"),
-            "aws_server": _stable_unit_score(url, "size_score::aws_server"),
+            "raspberry_pi": _stable_unit_score(url,
+                                               "size_score::raspberry_pi"),
+            "jetson_nano": _stable_unit_score(url,
+                                              "size_score::jetson_nano"),
+            "desktop_pc": _stable_unit_score(url,
+                                             "size_score::desktop_pc"),
+            "aws_server": _stable_unit_score(url,
+                                             "size_score::aws_server"),
         }
 
     (size_score, size_score_latency) = _time_ms(_build_size)
