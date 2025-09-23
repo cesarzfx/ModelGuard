@@ -10,8 +10,8 @@ from pathlib import Path
 from time import perf_counter
 from urllib.parse import urlparse
 
-from src.logging_utils import setup_logging
-from src.metrics.net_score import NetScore
+from .logging_utils import setup_logging
+from .metrics.net_score import NetScore
 
 
 # ----------------- file/url helpers -----------------
@@ -73,18 +73,12 @@ def _score_components(url: str) -> dict:
     # size_score (dict metric)
     t0 = perf_counter()
     size_score = {
-        "raspberry_pi": _stable_unit_score(
-            url, "size_score::raspberry_pi"),
-        "jetson_nano": _stable_unit_score(
-            url, "size_score::jetson_nano"),
-        "desktop_pc": _stable_unit_score(
-            url, "size_score::desktop_pc"),
-        "aws_server": _stable_unit_score(
-            url, "size_score::aws_server"),
+        "raspberry_pi": _stable_unit_score(url, "size_score::raspberry_pi"),
+        "jetson_nano": _stable_unit_score(url, "size_score::jetson_nano"),
+        "desktop_pc": _stable_unit_score(url, "size_score::desktop_pc"),
+        "aws_server": _stable_unit_score(url, "size_score::aws_server"),
     }
-    out["size_score"] = {
-        k: max(0.0, min(1.0, float(v))) for k, v in size_score.items()
-    }
+    out["size_score"] = {k: max(0.0, min(1.0, float(v))) for k, v in size_score.items()}
     out["size_score_latency"] = _ms_since(t0)
     return out
 
@@ -106,7 +100,7 @@ def process_url(url: str) -> dict:
 
     ns = NetScore(url)
     t0 = perf_counter()
-    net_score = ns.score(scalar_metrics, comps["size_score"])  # type: ignore[arg-type]  # noqa: E501
+    net_score = ns.score(scalar_metrics, comps["size_score"])  # type: ignore[arg-type]
     net_latency = _ms_since(t0)
 
     return {
@@ -120,30 +114,22 @@ def process_url(url: str) -> dict:
         "bus_factor": round(comps["bus_factor"], 6),
         "bus_factor_latency": int(comps["bus_factor_latency"]),
         "performance_claims": round(comps["performance_claims"], 6),
-        "performance_claims_latency": int(
-            comps["performance_claims_latency"]
-        ),
+        "performance_claims_latency": int(comps["performance_claims_latency"]),
         "license": round(comps["license"], 6),
         "license_latency": int(comps["license_latency"]),
-        "size_score": {
-            k: round(v, 6) for k, v in comps["size_score"].items()  # type: ignore[union-attr]  # noqa: E501
-        },
+        "size_score": {k: round(v, 6) for k, v in comps["size_score"].items()},  # type: ignore[union-attr]
         "size_score_latency": int(comps["size_score_latency"]),
         "dataset_and_code_score": round(comps["dataset_and_code_score"], 6),
-        "dataset_and_code_score_latency": int(
-            comps["dataset_and_code_score_latency"]
-        ),
+        "dataset_and_code_score_latency": int(comps["dataset_and_code_score_latency"]),
         "dataset_quality": round(comps["dataset_quality"], 6),
         "dataset_quality_latency": int(comps["dataset_quality_latency"]),
         "code_quality": round(comps["code_quality"], 6),
         "code_quality_latency": int(comps["code_quality_latency"]),
-        # keep a deterministic 'scores' block if earlier tests expect it
         "scores": {
             "relevance": _stable_unit_score(url, "relevance"),
             "safety": _stable_unit_score(url, "safety"),
             "quality": _stable_unit_score(url, "quality"),
         },
-        # final integer latency to avoid sci-notation
         "latency_ms": _ms_since(overall_t0),
     }
 
@@ -154,15 +140,13 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     g = ap.add_mutually_exclusive_group()
     g.add_argument("--url", help="Score a single URL")
     g.add_argument("--url-file", help="Path to newline-delimited URLs")
-    ap.add_argument("positional_file", nargs="?",
-                     help="(compat) URL file path")
+    ap.add_argument("positional_file", nargs="?", help="(compat) URL file path")
     return ap.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     used_file_handler = setup_logging()
     log = logging.getLogger(__name__)
-
 
     args = _parse_args(argv)
 
@@ -176,7 +160,6 @@ def main(argv: list[str] | None = None) -> int:
         log_file = os.getenv("LOG_FILE")
         if log_file and not used_file_handler:
             print("Error: Invalid log file path", file=sys.stderr)
-
             return 1
 
         print("Usage: python -m src.main <url_file>", file=sys.stderr)
@@ -189,19 +172,17 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     # ---- URL-file mode (supports --url-file and positional) ----
-    url_file = Path(args.url_file or args.positional_file)  # type: ignore[arg-type]  # noqa: E501
+    url_file = Path(args.url_file or args.positional_file)  # type: ignore[arg-type]
     if not url_file.exists():
         print(f"Error: file not found: {url_file}", file=sys.stderr)
         return 2
 
     count = 0
-
     for url in iter_urls(url_file):
         rec = process_url(url)
         sys.stdout.write(json.dumps(rec, ensure_ascii=False) + "\n")
         count += 1
     sys.stdout.flush()
-
 
     log.info("Processed %d URL(s) from %s", count, url_file.name)
     return 0
