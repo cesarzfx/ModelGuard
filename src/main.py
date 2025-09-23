@@ -158,9 +158,9 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     g = ap.add_mutually_exclusive_group()
     g.add_argument("--url", help="Score a single URL")
     g.add_argument("--url-file", 
-                   help="Path to newline-delimited URLs")
+        help="Path to newline-delimited URLs")
     ap.add_argument("positional_file", 
-                    nargs="?", help="(compat) URL file path")
+        nargs="?", help="(compat) URL file path")
     return ap.parse_args(argv)
 
 
