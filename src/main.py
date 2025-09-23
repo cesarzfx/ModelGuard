@@ -1,9 +1,11 @@
+# src/main.py
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
 import logging
+import math
 import os
 import sys
 from pathlib import Path
@@ -71,18 +73,10 @@ def _score_components(url: str) -> dict:
 
     t0 = perf_counter()
     size_score = {
-        "raspberry_pi": _stable_unit_score(
-            url, "size_score::raspberry_pi"
-        ),
-        "jetson_nano": _stable_unit_score(
-            url, "size_score::jetson_nano"
-        ),
-        "desktop_pc": _stable_unit_score(
-            url, "size_score::desktop_pc"
-        ),
-        "aws_server": _stable_unit_score(
-            url, "size_score::aws_server"
-        ),
+        "raspberry_pi": _stable_unit_score(url, "size_score::raspberry_pi"),
+        "jetson_nano": _stable_unit_score(url, "size_score::jetson_nano"),
+        "desktop_pc": _stable_unit_score(url, "size_score::desktop_pc"),
+        "aws_server": _stable_unit_score(url, "size_score::aws_server"),
     }
     out["size_score"] = {
         k: max(0.0, min(1.0, float(v))) for k, v in size_score.items()
@@ -111,7 +105,7 @@ def process_url(url: str) -> dict:
     net_score = ns.score(scalar_metrics, comps["size_score"])
     net_latency = _ms_since(t0)
 
-    return {
+    record = {
         "url": url,
         "name": name,
         "category": category,
@@ -138,9 +132,7 @@ def process_url(url: str) -> dict:
             comps["dataset_and_code_score_latency"]
         ),
         "dataset_quality": round(comps["dataset_quality"], 6),
-        "dataset_quality_latency": int(
-            comps["dataset_quality_latency"]
-        ),
+        "dataset_quality_latency": int(comps["dataset_quality_latency"]),
         "code_quality": round(comps["code_quality"], 6),
         "code_quality_latency": int(comps["code_quality_latency"]),
         "scores": {
@@ -150,41 +142,34 @@ def process_url(url: str) -> dict:
         },
         "latency_ms": _ms_since(overall_t0),
     }
+    return record
 
 
 # ----------------- CLI -----------------
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(add_help=False)
     g = ap.add_mutually_exclusive_group()
-    g.add_argument(
-        "--url",
-        help="Score a single URL",
-    )
-    g.add_argument(
-        "--url-file",
-        help="Path to newline-delimited URLs",
-    )
-    ap.add_argument(
-        "positional_file",
-        nargs="?",
-        help="(compat) URL file path",
-    )
+    g.add_argument("--url", help="Score a single URL")
+    g.add_argument("--url-file", help="Path to newline-delimited URLs")
+    ap.add_argument("positional_file", nargs="?", help="(compat) URL file path")
     return ap.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
-    level_name, sink = setup_logging()
+    level, sink = setup_logging()
     log = logging.getLogger(__name__)
+    log.debug("Logging initialized: level=%s sink=%s", level, sink)
 
     args = _parse_args(argv)
 
-    # Env sanity checks only when no args are provided.
+    # ----- Environment sanity tests (invoked with NO args) -----
     if not any([args.url, args.url_file, args.positional_file]):
         token = os.getenv("GITHUB_TOKEN", "")
         if not token or token.lower().startswith("invalid"):
             print("Error: Invalid GitHub token", file=sys.stderr)
             return 1
 
+        # If LOG_FILE is set but logging fell back to stderr, error out.
         log_file = os.getenv("LOG_FILE")
         if log_file and sink == "stderr":
             print("Error: Invalid log file path", file=sys.stderr)
@@ -193,14 +178,14 @@ def main(argv: list[str] | None = None) -> int:
         print("Usage: python -m src.main <url_file>", file=sys.stderr)
         return 2
 
-    # Single-URL mode
+    # ----- Single-URL mode -----
     if args.url:
         rec = process_url(args.url)
         print(json.dumps(rec, ensure_ascii=False), flush=True)
         return 0
 
-    # URL-file mode (support --url-file or positional file)
-    url_file = Path(args.url_file or args.positional_file)
+    # ----- URL-file mode (support flag or positional) -----
+    url_file = Path(args.url_file or args.positional_file)  # type: ignore[arg-type]
     if not url_file.exists():
         print(f"Error: file not found: {url_file}", file=sys.stderr)
         return 2
