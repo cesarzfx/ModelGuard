@@ -40,13 +40,16 @@ def _parse_level(raw: str | None) -> int | None:
     return aliases.get(val)
 
 
-def setup_logging() -> None:
-    """Initialize logging based on LOG_LEVEL and LOG_FILE.
+def setup_logging() -> bool:
+    """Configure logging from LOG_LEVEL and LOG_FILE.
 
-    - If LOG_FILE is invalid/unwritable: print exactly
-      'Error: Invalid log file path' to stderr and exit non-zero.
-    - Never log to stdout (only stderr or file).
-    - Support 'silent' mode (disable logging).
+    Returns:
+        bool: True if LOG_FILE appears valid and was used;
+              False if we are logging to stderr (either no LOG_FILE or invalid).
+    Notes:
+        - Do NOT exit from here (the env tests expect main() to decide).
+        - Never log to stdout (only stderr or a file).
+        - Support 'silent' (disable logger).
     """
     level = _parse_level(os.getenv("LOG_LEVEL"))
     log_file = os.getenv("LOG_FILE")
@@ -54,20 +57,21 @@ def setup_logging() -> None:
     # Silent mode disables the root logger
     if level == _SILENT_SENTINEL:
         logging.getLogger().disabled = True
-        return
+        return False
 
     handlers: list[logging.Handler] = []
+    used_file = False
+
     if log_file:
         try:
             parent = os.path.dirname(log_file) or "."
-            if parent and not os.path.exists(parent):
-                raise FileNotFoundError(parent)
+            # Don't auto-create; just attempt to open. If it fails, we'll fall back to stderr.
             fh = logging.FileHandler(log_file, encoding="utf-8")
             handlers.append(fh)
+            used_file = True
         except Exception:
-            sys.stderr.write("Error: Invalid log file path\n")
-            sys.stderr.flush()
-            sys.exit(2)
+            handlers.append(logging.StreamHandler(sys.stderr))
+            used_file = False
     else:
         handlers.append(logging.StreamHandler(sys.stderr))
 
@@ -77,3 +81,4 @@ def setup_logging() -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
         force=True,
     )
+    return used_file
