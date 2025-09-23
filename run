@@ -1,56 +1,38 @@
 #!/usr/bin/env bash
-set -euo pipefail  # strict mode
+set -euo pipefail
 
-CMD="${1:-}"
+cmd="${1:-}"
 shift || true
 
-case "$CMD" in
+case "$cmd" in
   install)
-    # Deterministic install for grader
     python3 -m pip install --upgrade pip
-    pip3 install -r requirements.txt
-    exit 0
-    ;;
-
-  test)
-    # Run pytest with coverage; capture full output to parse counts & coverage
-    TMP_OUT="$(mktemp)"
-    # NOTE: addopts (cov, term-missing) are already in pyproject.toml
-    # We avoid -q so "collected N items" appears for TOTAL parsing.
-    if pytest | tee "$TMP_OUT"; then
-      PYTEST_STATUS=0
+    if [[ -f requirements.txt ]]; then
+      pip3 install --user -r requirements.txt
     else
-      PYTEST_STATUS=$?
-    fi
-
-    # ---- Parse TOTAL (from "collected N items") ----
-    TOTAL="$(grep -Eo 'collected [0-9]+ items?' "$TMP_OUT" | awk '{print $2}' | tail -1)"
-    TOTAL="${TOTAL:-0}"
-
-    # ---- Parse PASSED (from summary "... X passed ...") ----
-    PASSED="$(grep -Eo '[0-9]+ passed' "$TMP_OUT" | awk '{print $1}' | tail -1)"
-    PASSED="${PASSED:-0}"
-
-    # ---- Parse COVERAGE (from coverage table "TOTAL ... NN%") ----
-    # pytest-cov (term-missing) prints a table; the last column for TOTAL is the percent.
-    if grep -qE '^TOTAL[[:space:]]' "$TMP_OUT"; then
-      COVERAGE="$(grep -E '^TOTAL[[:space:]]' "$TMP_OUT" | tail -1 | awk '{print $NF}')"
-    else
-      COVERAGE="0%"
-    fi
-
-    echo "${PASSED}/${TOTAL} test cases passed. ${COVERAGE} line coverage achieved."
-
-    # If pytest failed, exit 1 so CI/grader knows it failed.
-    # (Even if parsing succeeded, we honor pytest's real status.)
-    if [ "$PYTEST_STATUS" -ne 0 ]; then
+      echo "requirements.txt not found" >&2
       exit 1
     fi
-    exit 0
     ;;
-
+  test)
+    out="$(pytest --maxfail=1 -q --cov=acme_cli --cov-report=term-missing || true)"
+    echo "$out"
+    passed="$(echo "$out" | grep -Eo '[0-9]+ passed' | awk '{print $1}' | tail -1)"
+    total="$(echo "$out"  | grep -Eo 'collected [0-9]+ items?' | awk '{print $2}' | tail -1)"
+    cov="$(echo "$out" | grep -Eo 'TOTAL.+[0-9]+%$' | awk '{print $NF}' | tr -d '%')"
+    passed="${passed:-0}"
+    total="${total:-0}"
+    cov="${cov:-0}"
+    echo "${passed}/${total} test cases passed. ${cov}% line coverage achieved."
+    test "$passed" -eq "$total"
+    ;;
   *)
-    # Treat any other arg as a URL file path and hand off to Python CLI
-    python3 -m src.main "$CMD" "$@"
+    # Treat arg as URL file path
+    url_file="${cmd}"
+    if [[ ! -f "$url_file" ]]; then
+      echo "URL file not found: $url_file" >&2
+      exit 1
+    fi
+    python3 -m acme_cli.main "$url_file"
     ;;
 esac

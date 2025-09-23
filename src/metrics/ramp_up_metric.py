@@ -1,1 +1,0 @@
-# Ramp Up Metric
