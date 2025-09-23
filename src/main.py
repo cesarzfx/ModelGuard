@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import argparse
 import hashlib
 import json
@@ -9,11 +8,8 @@ import sys
 from pathlib import Path
 from time import perf_counter
 from urllib.parse import urlparse
-
 from .logging_utils import setup_logging
 from .metrics.net_score import NetScore
-
-
 # ----------------- file/url helpers -----------------
 def iter_urls(path: Path):
     """Yield one URL per non-empty, non-comment token.
@@ -28,33 +24,24 @@ def iter_urls(path: Path):
                 url = token.strip()
                 if url and not url.startswith("#"):
                     yield url
-
-
 def _stable_unit_score(url: str, salt: str) -> float:
     """Deterministically map (url, salt) -> [0.0, 1.0]."""
     h = hashlib.md5((url + "::" + salt).encode("utf-8")).hexdigest()
     val = int(h[:8], 16) / 0xFFFFFFFF
     return max(0.0, min(1.0, float(val)))
-
-
 def _ms_since(t0: float) -> int:
     ms = int((perf_counter() - t0) * 1000)
     return max(ms, 1)
-
-
 def _infer_name_category(url: str) -> tuple[str, str]:
     """Derive a friendly name and default category."""
     p = urlparse(url)
     path = (p.path or "").rstrip("/")
     last = (path.rsplit("/", 1)[-1] if path else p.netloc) or "artifact"
     return last[:128] or "artifact", "CODE"
-
-
 # ----------------- scoring -----------------
 def _score_components(url: str) -> dict:
     """Return component scores (clamped) and *_latency ints ≥ 1."""
     out: dict[str, object] = {}
-
     for key in (
         "ramp_up_time",
         "bus_factor",
@@ -68,7 +55,6 @@ def _score_components(url: str) -> dict:
         val = _stable_unit_score(url, key)
         out[key] = max(0.0, min(1.0, float(val)))
         out[f"{key}_latency"] = _ms_since(t0)
-
     t0 = perf_counter()
     size_score = {
         "raspberry_pi": _stable_unit_score(
@@ -89,13 +75,10 @@ def _score_components(url: str) -> dict:
     }
     out["size_score_latency"] = _ms_since(t0)
     return out
-
-
 def process_url(url: str) -> dict:
     overall_t0 = perf_counter()
     name, category = _infer_name_category(url)
     comps = _score_components(url)
-
     scalar_metrics = [
         comps["ramp_up_time"],
         comps["bus_factor"],
@@ -105,12 +88,10 @@ def process_url(url: str) -> dict:
         comps["dataset_quality"],
         comps["code_quality"],
     ]
-
     ns = NetScore(url)
     t0 = perf_counter()
     net_score = ns.score(scalar_metrics, comps["size_score"])
     net_latency = _ms_since(t0)
-
     return {
         "url": url,
         "name": name,
@@ -150,8 +131,6 @@ def process_url(url: str) -> dict:
         },
         "latency_ms": _ms_since(overall_t0),
     }
-
-
 # ----------------- CLI -----------------
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(add_help=False)
@@ -169,8 +148,6 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         help="(compat) URL file path"
     )
     return ap.parse_args(argv)
-
-
 
 def main(argv: list[str] | None = None) -> int:
     used_file_handler = setup_logging()
@@ -213,7 +190,6 @@ def main(argv: list[str] | None = None) -> int:
 
     log.info("Processed %d URL(s) from %s", count, url_file.name)
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
