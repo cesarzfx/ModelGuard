@@ -92,10 +92,18 @@ def process_url(url: str) -> dict:
     # size_score is a dict of device->score
     def _build_size():
         return {
-            "raspberry_pi": _stable_unit_score(url, "size_score::raspberry_pi"),
-            "jetson_nano": _stable_unit_score(url, "size_score::jetson_nano"),
-            "desktop_pc": _stable_unit_score(url, "size_score::desktop_pc"),
-            "aws_server": _stable_unit_score(url, "size_score::aws_server"),
+            "raspberry_pi": _stable_unit_score(
+                url, "size_score::raspberry_pi"
+            ),
+            "jetson_nano": _stable_unit_score(
+                url, "size_score::jetson_nano"
+            ),
+            "desktop_pc": _stable_unit_score(
+                url, "size_score::desktop_pc"
+            ),
+            "aws_server": _stable_unit_score(
+                url, "size_score::aws_server"
+            ),
         }
 
     (size_score, size_score_latency) = _time_ms(_build_size)
@@ -170,6 +178,7 @@ def main(argv: list[str] | None = None) -> int:
         try:
             os.makedirs(os.path.dirname(sink), exist_ok=True)
             with open(sink, "a"):  # append mode creates file if needed
+
                 pass
         except Exception:
             print("Error: Invalid log file path", file=sys.stderr)
@@ -186,10 +195,14 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     count = 0
-    for url in iter_urls(url_file):   # ✅ use iter_urls now
-        record = process_url(url)
-        print(json.dumps(record, ensure_ascii=False), flush=True)
-        count += 1
+    with url_file.open("r", encoding="utf-8") as fh:
+        for raw in fh:
+            url = raw.strip()
+            if not url or url.startswith("#"):
+                continue
+            record = process_url(url)
+            print(json.dumps(record, ensure_ascii=False), flush=True)
+            count += 1
 
     if count == 0:
         print("Error: no valid URLs processed", file=sys.stderr)
