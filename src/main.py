@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import argparse
 import hashlib
 import json
@@ -8,8 +9,10 @@ import sys
 from pathlib import Path
 from time import perf_counter
 from urllib.parse import urlparse
+
 from .logging_utils import setup_logging
 from .metrics.net_score import NetScore
+
 # ----------------- file/url helpers -----------------
 def iter_urls(path: Path):
     """Yield one URL per non-empty, non-comment token.
