@@ -1,4 +1,3 @@
-# src/logging_utils.py
 from __future__ import annotations
 
 import logging
@@ -47,7 +46,6 @@ def setup_logging() -> tuple[str, str]:
     Returns a pair (level_name, sink) where sink is 'stderr' or a path.
     """
     parsed = _parse_level(os.getenv("LOG_LEVEL"))
-    # Default WARNING keeps noise low. Change to INFO if you prefer.
     level = logging.WARNING if parsed is None else parsed
 
     # Reset handlers so we control sinks deterministically.
