@@ -9,8 +9,8 @@ import sys
 from pathlib import Path
 from time import perf_counter
 
-from .logging_utils import setup_logging
-from .metrics.net_score import NetScore
+from src.logging_utils import setup_logging
+from src.metrics.net_score import NetScore
 
 
 def iter_urls(path: Path):
@@ -176,6 +176,9 @@ def main(argv: list[str] | None = None) -> int:
     # --- Log file path validation ---
     if sink:
         try:
+            if not Path(sink).parent.exists():
+                print(f"Error: invalid log file path {sink}", file=sys.stderr)
+                return 1
             with open(sink, "a"):
                 pass
         except Exception:
@@ -193,12 +196,14 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     count = 0
-    for url in iter_urls(url_file):
-        if not url:
-            continue
-        record = process_url(url)
-        print(json.dumps(record, ensure_ascii=False), flush=True)
-        count += 1
+    with url_file.open("r", encoding="utf-8") as fh:
+        for raw in fh:
+            url = raw.strip()
+            if not url or url.startswith("#"):
+                continue
+            record = process_url(url)
+            print(json.dumps(record, ensure_ascii=False), flush=True)
+            count += 1
 
     if count == 0:
         print("Error: no valid URLs processed", file=sys.stderr)
