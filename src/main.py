@@ -55,7 +55,6 @@ def _score_components(url: str) -> dict:
     """Return component scores (clamped) and *_latency ints ≥ 1."""
     out: dict[str, object] = {}
 
-    # scalar metrics
     for key in (
         "ramp_up_time",
         "bus_factor",
@@ -70,7 +69,6 @@ def _score_components(url: str) -> dict:
         out[key] = max(0.0, min(1.0, float(val)))
         out[f"{key}_latency"] = _ms_since(t0)
 
-    # size_score (dict metric)
     t0 = perf_counter()
     size_score = {
         "raspberry_pi": _stable_unit_score(url, "size_score::raspberry_pi"),
@@ -78,7 +76,9 @@ def _score_components(url: str) -> dict:
         "desktop_pc": _stable_unit_score(url, "size_score::desktop_pc"),
         "aws_server": _stable_unit_score(url, "size_score::aws_server"),
     }
-    out["size_score"] = {k: max(0.0, min(1.0, float(v))) for k, v in size_score.items()}
+    out["size_score"] = {
+        k: max(0.0, min(1.0, float(v))) for k, v in size_score.items()
+    }
     out["size_score_latency"] = _ms_since(t0)
     return out
 
@@ -100,7 +100,7 @@ def process_url(url: str) -> dict:
 
     ns = NetScore(url)
     t0 = perf_counter()
-    net_score = ns.score(scalar_metrics, comps["size_score"])  # type: ignore[arg-type]
+    net_score = ns.score(scalar_metrics, comps["size_score"])
     net_latency = _ms_since(t0)
 
     return {
@@ -114,13 +114,19 @@ def process_url(url: str) -> dict:
         "bus_factor": round(comps["bus_factor"], 6),
         "bus_factor_latency": int(comps["bus_factor_latency"]),
         "performance_claims": round(comps["performance_claims"], 6),
-        "performance_claims_latency": int(comps["performance_claims_latency"]),
+        "performance_claims_latency": int(
+            comps["performance_claims_latency"]
+        ),
         "license": round(comps["license"], 6),
         "license_latency": int(comps["license_latency"]),
-        "size_score": {k: round(v, 6) for k, v in comps["size_score"].items()},  # type: ignore[union-attr]
+        "size_score": {
+            k: round(v, 6) for k, v in comps["size_score"].items()
+        },
         "size_score_latency": int(comps["size_score_latency"]),
         "dataset_and_code_score": round(comps["dataset_and_code_score"], 6),
-        "dataset_and_code_score_latency": int(comps["dataset_and_code_score_latency"]),
+        "dataset_and_code_score_latency": int(
+            comps["dataset_and_code_score_latency"]
+        ),
         "dataset_quality": round(comps["dataset_quality"], 6),
         "dataset_quality_latency": int(comps["dataset_quality_latency"]),
         "code_quality": round(comps["code_quality"], 6),
@@ -150,7 +156,6 @@ def main(argv: list[str] | None = None) -> int:
 
     args = _parse_args(argv)
 
-    # ---- Environment sanity tests (invoked with NO args) ----
     if not any([args.url, args.url_file, args.positional_file]):
         token = os.getenv("GITHUB_TOKEN", "")
         if not token or token.lower().startswith("invalid"):
@@ -165,14 +170,12 @@ def main(argv: list[str] | None = None) -> int:
         print("Usage: python -m src.main <url_file>", file=sys.stderr)
         return 2
 
-    # ---- Single-URL mode ----
     if args.url:
         rec = process_url(args.url)
         print(json.dumps(rec, ensure_ascii=False), flush=True)
         return 0
 
-    # ---- URL-file mode (supports --url-file and positional) ----
-    url_file = Path(args.url_file or args.positional_file)  # type: ignore[arg-type]
+    url_file = Path(args.url_file or args.positional_file)
     if not url_file.exists():
         print(f"Error: file not found: {url_file}", file=sys.stderr)
         return 2
