@@ -1,3 +1,4 @@
+# src/logging_utils.py
 from __future__ import annotations
 
 import logging
@@ -40,40 +41,47 @@ def _parse_level(raw: str | None) -> int | None:
     return aliases.get(val)
 
 
-def setup_logging() -> None:
-    """Initialize logging based on LOG_LEVEL and LOG_FILE.
+def setup_logging() -> tuple[str, str]:
+    """Configure logging from LOG_LEVEL and LOG_FILE.
 
-    - If LOG_FILE is invalid/unwritable: print exactly
-      'Error: Invalid log file path' to stderr and exit non-zero.
-    - Never log to stdout (only stderr or file).
-    - Support 'silent' mode (disable logging).
+    Returns a pair (level_name, sink) where sink is 'stderr' or a path.
     """
-    level = _parse_level(os.getenv("LOG_LEVEL"))
+    parsed = _parse_level(os.getenv("LOG_LEVEL"))
+    # Default WARNING keeps noise low. Change to INFO if you prefer.
+    level = logging.WARNING if parsed is None else parsed
+
+    # Reset handlers so we control sinks deterministically.
+    root = logging.getLogger()
+    for h in list(root.handlers):
+        root.removeHandler(h)
+
     log_file = os.getenv("LOG_FILE")
+    try:
+        if log_file:
+            handler: logging.Handler = logging.FileHandler(
+                log_file, encoding="utf-8"
+            )
+            sink_desc = log_file
+        else:
+            handler = logging.StreamHandler(stream=sys.stderr)
+            sink_desc = "stderr"
+    except OSError:
+        handler = logging.StreamHandler(stream=sys.stderr)
+        sink_desc = "stderr"
 
-    # Silent mode disables the root logger
-    if level == _SILENT_SENTINEL:
-        logging.getLogger().disabled = True
-        return
-
-    handlers: list[logging.Handler] = []
-    if log_file:
-        try:
-            parent = os.path.dirname(log_file) or "."
-            if parent and not os.path.exists(parent):
-                raise FileNotFoundError(parent)
-            fh = logging.FileHandler(log_file, encoding="utf-8")
-            handlers.append(fh)
-        except Exception:
-            sys.stderr.write("Error: Invalid log file path\n")
-            sys.stderr.flush()
-            sys.exit(2)
-    else:
-        handlers.append(logging.StreamHandler(sys.stderr))
-
-    logging.basicConfig(
-        level=level or logging.INFO,
-        handlers=handlers,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-        force=True,
+    fmt = logging.Formatter(
+        "%(asctime)s %(levelname)s %(name)s: %(message)s"
     )
+    handler.setFormatter(fmt)
+
+    # Silent mode: attach a handler but raise the root level above CRITICAL.
+    if level == _SILENT_SENTINEL:
+        root.addHandler(handler)
+        root.setLevel(logging.CRITICAL + 1)
+        return "silent", sink_desc
+
+    handler.setLevel(level)
+    root.addHandler(handler)
+    root.setLevel(level)
+
+    return logging.getLevelName(level).lower(), sink_desc
