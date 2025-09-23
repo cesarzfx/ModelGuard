@@ -10,8 +10,8 @@ from pathlib import Path
 from time import perf_counter
 from urllib.parse import urlparse
 
-from .logging_utils import setup_logging
-from .metrics.net_score import NetScore
+from src.logging_utils import setup_logging
+from src.metrics.net_score import NetScore
 
 
 # ----------------- file/url helpers -----------------
@@ -163,6 +163,7 @@ def main(argv: list[str] | None = None) -> int:
     used_file_handler = setup_logging()
     log = logging.getLogger(__name__)
 
+
     args = _parse_args(argv)
 
     # ---- Environment sanity tests (invoked with NO args) ----
@@ -175,6 +176,7 @@ def main(argv: list[str] | None = None) -> int:
         log_file = os.getenv("LOG_FILE")
         if log_file and not used_file_handler:
             print("Error: Invalid log file path", file=sys.stderr)
+
             return 1
 
         print("Usage: python -m src.main <url_file>", file=sys.stderr)
@@ -193,11 +195,13 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     count = 0
+
     for url in iter_urls(url_file):
         rec = process_url(url)
         sys.stdout.write(json.dumps(rec, ensure_ascii=False) + "\n")
         count += 1
     sys.stdout.flush()
+
 
     log.info("Processed %d URL(s) from %s", count, url_file.name)
     return 0
