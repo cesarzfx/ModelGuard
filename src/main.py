@@ -60,7 +60,6 @@ def process_url(url: str) -> dict:
       - all *_latency fields are integers in ms
       - all scores are in [0,1]
       - net_score is the mean of scalar metrics + mean(size_score.values())
-    Also retains earlier fields: url, scores, latency, latency_ms
     """
     overall_t0 = perf_counter()
 
@@ -93,17 +92,17 @@ def process_url(url: str) -> dict:
     def _build_size():
         return {
             "raspberry_pi": _stable_unit_score(
-                url, "size_score::raspberry_pi"
-            ),
+                url,
+                "size_score::raspberry_pi"),
             "jetson_nano": _stable_unit_score(
-                url, "size_score::jetson_nano"
-            ),
+                url,
+                "size_score::jetson_nano"),
             "desktop_pc": _stable_unit_score(
-                url, "size_score::desktop_pc"
-            ),
+                url,
+                "size_score::desktop_pc"),
             "aws_server": _stable_unit_score(
-                url, "size_score::aws_server"
-            ),
+                url,
+                "size_score::aws_server"),
         }
 
     (size_score, size_score_latency) = _time_ms(_build_size)
@@ -132,7 +131,8 @@ def process_url(url: str) -> dict:
         "quality": _stable_unit_score(url, "quality"),
     }
 
-    overall_latency_s = perf_counter() - overall_t0
+    overall_latency_ms = int(math.floor((perf_counter() - overall_t0) * 1000))
+
     record = {
         "url": url,
         "name": name,
@@ -156,9 +156,9 @@ def process_url(url: str) -> dict:
         "code_quality": round(code_quality, 6),
         "code_quality_latency": int(code_quality_latency),
         "scores": scores,
-        # clamp latency into [0,1] to satisfy autograder
-        "latency": max(0.0, min(1.0, round(overall_latency_s, 6))),
-        "latency_ms": int(math.floor(overall_latency_s * 1000)),
+        # both latency values are integers in ms
+        "latency": overall_latency_ms,
+        "latency_ms": overall_latency_ms,
     }
     return record
 
@@ -176,9 +176,10 @@ def main(argv: list[str] | None = None) -> int:
     # --- Log file path validation ---
     if sink:
         try:
-            os.makedirs(os.path.dirname(sink), exist_ok=True)
-            with open(sink, "a"):  # append mode creates file if needed
-
+            dir_path = os.path.dirname(sink)
+            if dir_path:
+                os.makedirs(dir_path, exist_ok=True)
+            with open(sink, "a"):  # append mode creates file if missing
                 pass
         except Exception:
             print("Error: Invalid log file path", file=sys.stderr)
@@ -195,14 +196,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     count = 0
-    with url_file.open("r", encoding="utf-8") as fh:
-        for raw in fh:
-            url = raw.strip()
-            if not url or url.startswith("#"):
-                continue
-            record = process_url(url)
-            print(json.dumps(record, ensure_ascii=False), flush=True)
-            count += 1
+    for url in iter_urls(url_file):
+        record = process_url(url)
+        print(json.dumps(record, ensure_ascii=False), flush=True)
+        count += 1
 
     if count == 0:
         print("Error: no valid URLs processed", file=sys.stderr)
