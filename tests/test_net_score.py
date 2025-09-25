@@ -1,5 +1,3 @@
-import pytest
-
 from src.metrics.net_score import NetScore
 
 

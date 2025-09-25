@@ -73,13 +73,16 @@ class CodeQualityMetric(Metric):
 
         # Line length & TODO density over code files
         code_files = [
-            f for f in p.rglob("*") if f.is_file() and f.suffix.lower() in self.CODE_EXTS
+            f
+            for f in p.rglob("*")
+            if f.is_file() and f.suffix.lower() in self.CODE_EXTS
         ]
         if code_files:
             total_lines = 0
             long_lines = 0
             todos = 0
-            for f in code_files[:2000]:  # cap to avoid huge repos cost
+            # Cap to avoid scanning extremely large repositories
+            for f in code_files[:2000]:
                 try:
                     with f.open("r", encoding="utf-8", errors="ignore") as fh:
                         for line in fh:
@@ -93,14 +96,14 @@ class CodeQualityMetric(Metric):
 
             if total_lines > 0:
                 long_ratio = long_lines / total_lines
-                # less long lines -> better (<=5% -> +0.2; <=15% -> +0.1; else 0)
+                # Less long lines -> better (<=5%: +0.2; <=15%: +0.1; else 0)
                 if long_ratio <= 0.05:
                     score += 0.2
                 elif long_ratio <= 0.15:
                     score += 0.1
 
                 todo_ratio = todos / total_lines
-                # penalize heavy TODOs
+                # Penalize heavy TODOs
                 if todo_ratio <= 0.002:
                     score += 0.1
                 elif todo_ratio >= 0.02:

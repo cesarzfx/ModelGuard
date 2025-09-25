@@ -45,9 +45,7 @@ class PerformanceClaimsMetric(Metric):
 
         bench_dirs = []
         for pat in self.BENCH_GLOBS:
-            bench_dirs.extend(
-                [d for d in self._glob(p, [f"**/{pat}/**"])]
-            )
+            bench_dirs.extend(self._glob(p, [f"**/{pat}/**"]))
 
         if bench_dirs:
             score += 0.3

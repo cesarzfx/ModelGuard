@@ -9,6 +9,7 @@ class SizeMetric(Metric):
       - files: count of tracked files
       - lines: LOC across code files (rough)
       - commits: total git commits
+
     Returns sub-scores normalized to [0,1] with saturating scales.
     """
 
@@ -47,8 +48,8 @@ class SizeMetric(Metric):
 
         # Lines (only count code-like files)
         loc = 0
-        for rel in files[:5000]:  # cap for huge repos
-            f = root / rel
+        for rel in files[:5000]:  # Cap for huge repos
+            f = p / rel
             if f.suffix.lower() in self.CODE_EXTS and f.is_file():
                 loc += self._count_lines(f)
 
