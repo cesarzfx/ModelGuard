@@ -1,7 +1,7 @@
+from typing import Dict
 import re
 
 from src.metrics.metric import Metric
-
 from .base_metric import BaseMetric
 
 
@@ -44,10 +44,10 @@ class LicenseMetric(BaseMetric, Metric):
         "Unlicense": re.compile(r"\bThe Unlicense\b", re.I),
     }
 
-    def score(self, path_or_url: str) -> float:
+    def score(self, path_or_url: str) -> Dict[str, float]:
         p = self._as_path(path_or_url)
         if not p:
-            return self._stable_unit_score(path_or_url, "license")
+            return {"license": self._stable_unit_score(path_or_url, "license")}
 
         for name in self.LICENSE_FILES:
             f = p / name
@@ -56,17 +56,17 @@ class LicenseMetric(BaseMetric, Metric):
                 # Known SPDX -> 1.0
                 for rx in self.SPDX_HINTS.values():
                     if rx.search(txt):
-                        return 1.0
+                        return {"license": 1.0}
                 # At least some license file present
                 if len(txt) > 100:
-                    return 0.7
-                return 0.5
+                    return {"license": 0.7}
+                return {"license": 0.5}
 
         # Sometimes license mentioned in README
         for readme in [p / "README.md", p / "README.rst", p / "README.txt"]:
             if readme.exists():
                 txt = self._read_text(readme)
                 if re.search(r"\blicense\b", txt, re.I):
-                    return 0.4
+                    return {"license": 0.4}
 
-        return 0.0
+        return {"license": 0.0}

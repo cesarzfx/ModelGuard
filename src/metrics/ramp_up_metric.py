@@ -14,10 +14,10 @@ class RampUpMetric(BaseMetric, Metric):
       + Example commands
     """
 
-    def score(self, path_or_url: str) -> float:
+    def score(self, path_or_url: str) -> dict:
         p = self._as_path(path_or_url)
         if not p:
-            return self._stable_unit_score(path_or_url, "ramp_up")
+            return {"ramp_up": self._stable_unit_score(path_or_url, "ramp_up")}
 
         score = 0.0
 
@@ -51,7 +51,7 @@ class RampUpMetric(BaseMetric, Metric):
                 score += 0.1  # Code examples
         else:
             # No README -> hard to ramp up
-            return 0.05
+            return {"ramp_up": 0.05}
 
         # Contributing / docs presence
         if (p / "CONTRIBUTING.md").exists():
@@ -59,4 +59,4 @@ class RampUpMetric(BaseMetric, Metric):
         if (p / "docs").exists():
             score += 0.05
 
-        return self._clamp01(score)
+        return {"ramp_up": self._clamp01(score)}
