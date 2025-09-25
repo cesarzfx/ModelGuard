@@ -46,35 +46,43 @@ def setup_logging() -> tuple[str, str]:
 
     Returns a pair (level_name, sink) where sink is 'stderr' or a path.
     """
+    # This part of your function is fine
     parsed = _parse_level(os.getenv("LOG_LEVEL"))
-    # Default WARNING keeps noise low. Change to INFO if you prefer.
     level = logging.WARNING if parsed is None else parsed
 
-    # Reset handlers so we control sinks deterministically.
     root = logging.getLogger()
     for h in list(root.handlers):
         root.removeHandler(h)
 
     log_file = os.getenv("LOG_FILE")
-    try:
-        if log_file:
+
+    # --- Start of the corrected block ---
+    if log_file:
+        try:
+            # If a log file is specified, try to use it.
             handler: logging.Handler = logging.FileHandler(
                 log_file, encoding="utf-8"
             )
             sink_desc = log_file
-        else:
-            handler = logging.StreamHandler(stream=sys.stderr)
-            sink_desc = "stderr"
-    except OSError:
+        except OSError as e:
+            # If opening the file fails, print a clear error and exit.
+            print(
+                f"Error: cannot open log file '{log_file}': {e}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+    else:
+        # If no log file is specified, default to logging to the console.
         handler = logging.StreamHandler(stream=sys.stderr)
         sink_desc = "stderr"
+    # --- End of the corrected block ---
 
+    # This part of your function is also fine
     fmt = logging.Formatter(
         "%(asctime)s %(levelname)s %(name)s: %(message)s"
     )
     handler.setFormatter(fmt)
 
-    # Silent mode: attach a handler but raise the root level above CRITICAL.
     if level == _SILENT_SENTINEL:
         root.addHandler(handler)
         root.setLevel(logging.CRITICAL + 1)
