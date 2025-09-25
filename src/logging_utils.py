@@ -62,7 +62,8 @@ def setup_logging() -> tuple[str, str]:
             sink_desc = log_file
         except OSError as e:
             print(
-                f"Error: cannot open log file '{log_file}': {e}", file=sys.stderr)
+                f"Error: cannot open log file '{log_file}': {e}",
+                file=sys.stderr)
             sys.exit(1)  # exit non-zero so the autograder flags failure
     else:
         handler = logging.StreamHandler(stream=sys.stderr)
