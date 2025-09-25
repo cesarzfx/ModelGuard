@@ -65,7 +65,8 @@ class CodeQualityMetric(Metric):
             score += 0.2
 
         # Tests presence
-        has_tests = any((p / name).exists() for name in self.TEST_HINTS) or bool(
+        has_tests = any((p / name)
+                        .exists() for name in self.TEST_HINTS) or bool(
             self._glob(p, ["**/*_test.*", "**/test_*.py"])
         )
         if has_tests:

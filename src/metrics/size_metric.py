@@ -36,9 +36,12 @@ class SizeMetric(Metric):
         if not p or not self._is_git_repo(p):
             # Fallback: deterministic but stable dictionary
             return {
-                "files": self._stable_unit_score(path_or_url, "size_files"),
-                "lines": self._stable_unit_score(path_or_url, "size_lines"),
-                "commits": self._stable_unit_score(path_or_url, "size_commits"),
+                "files": self._stable_unit_score(path_or_url,
+                                                 "size_files"),
+                "lines": self._stable_unit_score(path_or_url,
+                                                 "size_lines"),
+                "commits": self._stable_unit_score(path_or_url,
+                                                   "size_commits"),
             }
 
         # Files (tracked by git)

@@ -30,15 +30,23 @@ class PerformanceClaimsMetric(Metric):
         if txt:
             # Term presence
             if re.search(
-                r"\b(benchmark|performance|throughput|latency|speedup|ops/sec)\b",
+                r"\b(benchmark|"
+                r"performance"
+                r"|throughput"
+                r"|latency"
+                r"|speedup"
+                r"|ops/sec)\b",
                 txt,
                 re.I,
             ):
                 score += 0.4
             # Presence of code-like timings or tables
-            if re.search(r"\b(ms|ns|sec|seconds|ops/sec)\b", txt, re.I) and re.search(
+            if (re.search(r"\b(ms|ns|sec|seconds|ops/sec)\b",
+                         txt,
+                         re.I)
+                    and re.search(
                 r"\d", txt
-            ):
+            )):
                 score += 0.2
             if re.search(r"\|.+\|", txt) and re.search(r"-{2,}", txt):
                 score += 0.1  # Markdown table
