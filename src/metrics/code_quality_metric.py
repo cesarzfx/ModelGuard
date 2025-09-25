@@ -54,8 +54,8 @@ class CodeQualityMetric(BaseMetric, Metric):
         p = self._as_path(path_or_url)
         if not p:
             return {"code_quality":
-                        self._stable_unit_score(path_or_url,
-                                                "code_quality")}
+            self._stable_unit_score(path_or_url,
+            "code_quality")}
 
         score = 0.0
 
