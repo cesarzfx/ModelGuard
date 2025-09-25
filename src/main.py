@@ -12,6 +12,7 @@ from src.metrics.size_metric import SizeMetric
 from src.metrics.net_score import NetScore
 
 
+
 def compute_all(path):
     am = AvailabilityMetric().score(path)
     bf = BusFactorMetric().score(path)
@@ -22,6 +23,7 @@ def compute_all(path):
     ru = RampUpMetric().score(path)
     sz = SizeMetric().score(path)
 
+
     scores = {
         "availability": am,
         "bus_factor": bf,
@@ -31,8 +33,10 @@ def compute_all(path):
         "performance_claims": pc,
         "ramp_up": ru,
     }
+
     net = NetScore(path).combine(scores, sz)
     return {"scores": scores, "size": sz, "net_score": net}
+
 
 
 if __name__ == "__main__":
