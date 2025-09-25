@@ -88,7 +88,10 @@ def _safe_combine(ns: NetScore, scalars: dict, size_detail: dict) -> float:
     Try NetScore.combine; on error, average provided scalars and the mean of size_detail.
     """
     try:
-        return ns.combine(scalars, size_detail)
+        return ns.combine(
+            scalars,
+            size_detail,
+        )
     except Exception:
         vals = [float(max(0.0, min(1.0, v))) for v in scalars.values()]
         try:
@@ -110,7 +113,6 @@ def _record(ns: NetScore, url: str) -> dict:
     dac = fmean([cq, dq])
 
     sz_detail = _size_detail(url)
-    sz_scalar = _size_scalar(sz_detail)
 
     scores_for_net = {
         "ramp_up_time": ramp,
