@@ -26,31 +26,28 @@ def setup_logging() -> None:
 
     if lvl == _SILENT_SENTINEL:
         try:
-            # create blank file and do not attach handlers
             with open(log_path, "w", encoding="utf-8"):
                 pass
         except Exception:
-            # even if path is bad, never crash
             pass
         return
 
-    # normal logging
-    logger = logging.getLogger()
-    logger.setLevel(lvl or logging.INFO)
-    logger.handlers[:] = []
+    import logging
+    from logging import handlers
+
+    root = logging.getLogger()
+    root.handlers[:] = []
+    root.setLevel(lvl or logging.INFO)
 
     try:
         fh = handlers.RotatingFileHandler(
             log_path, maxBytes=1_000_000, backupCount=1, encoding="utf-8"
         )
-        fmt = logging.Formatter(
+        fh.setFormatter(logging.Formatter(
             "%(asctime)s %(levelname)s %(name)s: %(message)s"
-        )
-        fh.setFormatter(fmt)
-        logger.addHandler(fh)
+        ))
+        root.addHandler(fh)
     except Exception:
-        # if log path invalid, fall back to STDERR only
-        sh = logging.StreamHandler()
-        fmt = logging.Formatter("%(levelname)s: %(message)s")
-        sh.setFormatter(fmt)
-        logger.addHandler(sh)
+        sh = logging.StreamHandler()  # fallback, don’t crash tests
+        sh.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+        root.addHandler(sh)
