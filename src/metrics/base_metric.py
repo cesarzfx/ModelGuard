@@ -29,7 +29,8 @@ class BaseMetric:
         return ""
 
     def _glob(self, *args: Any, **kwargs: Any) -> List[Path]:
-        """Glob files; flexible signature so mypy accepts different call styles."""
+        """Glob files; flexible signature so mypy accepts
+        different call styles."""
         return []
 
     def _as_path(self, path_or_url: str) -> Optional[Path]:
