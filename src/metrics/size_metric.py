@@ -23,13 +23,13 @@ class SizeMetric(BaseMetric):
                 ),
             }
 
-        # Example:
+        # Example metrics
         files = len(list(p.glob("**/*")))
         lines = sum(self._count_lines(f) for f in p.glob("**/*.py"))
         commits = int(self._git("rev-list", "--count", "HEAD"))
 
         return {
-            "files": self._saturating_scale(files, 1000),
-            "lines": self._saturating_scale(lines, 50000),
-            "commits": self._saturating_scale(commits, 5000),
+            "files": self._saturating_scale(files, max_x=1000),
+            "lines": self._saturating_scale(lines, max_x=50000),
+            "commits": self._saturating_scale(commits, max_x=5000),
         }
