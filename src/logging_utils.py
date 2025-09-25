@@ -48,27 +48,17 @@ def _parse_level(raw: str | None) -> int | None:
 
 
 def setup_logging() -> tuple[str, str]:
-    """Configure the root logger based on environment variables.
+    """Configure logging from LOG_LEVEL and LOG_FILE.
 
-    This function sets up logging to either a file (from LOG_FILE) or
-    stderr, and at a level specified by LOG_LEVEL. It ensures that
-    logging is configured deterministically by first removing any
-    existing handlers on the root logger.
-
-    It will exit the program with an error if LOG_FILE is specified but
-    cannot be written to.
-
-    Returns:
-        A pair containing the lowercase level name (e.g., "info", "silent")
-        and the sink description ("stderr" or the log file path).
+    Returns a pair (level_name, sink) where sink is 'stderr' or a path.
     """
     # Determine the logging level, defaulting to WARNING for clean output.
     parsed_level = _parse_level(os.getenv("LOG_LEVEL"))
     level = logging.WARNING if parsed_level is None else parsed_level
 
-    root = logging.getLogger()
-    # Reset all handlers to ensure our configuration is the only one active.
+    # Reset handlers to ensure our configuration is the only one active.
     # This prevents duplicate log messages if this function is called multiple times.
+    root = logging.getLogger()
     for h in list(root.handlers):
         root.removeHandler(h)
 
