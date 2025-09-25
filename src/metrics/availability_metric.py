@@ -1,7 +1,7 @@
+from typing import Dict
 from datetime import datetime, timezone
 
 from src.metrics.metric import Metric
-
 from .base_metric import BaseMetric
 
 
@@ -14,11 +14,12 @@ class AvailabilityMetric(BaseMetric, Metric):
     Fallback: stable placeholder if not a local path.
     """
 
-    def score(self, path_or_url: str) -> dict:
+    def score(self, path_or_url: str) -> Dict[str, float]:
         p = self._as_path(path_or_url)
         if not p:
-            return {"availability":
-            self._stable_unit_score(path_or_url, "availability")}
+            return {
+                "availability": self._stable_unit_score(path_or_url, "availability")
+            }
 
         score = 0.0
 
@@ -40,4 +41,5 @@ class AvailabilityMetric(BaseMetric, Metric):
                     score += 0.4
                 elif days_since <= 365:
                     score += 0.4 * (1 - (days_since - 90) / 275)
+
         return {"availability": self._clamp01(score)}

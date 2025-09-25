@@ -1,7 +1,7 @@
 import re
+from typing import Dict
 
 from src.metrics.metric import Metric
-
 from .base_metric import BaseMetric
 
 
@@ -50,12 +50,14 @@ class CodeQualityMetric(BaseMetric, Metric):
         ".php",
     }
 
-    def score(self, path_or_url: str) -> dict:
+    def score(self, path_or_url: str) -> Dict[str, float]:
         p = self._as_path(path_or_url)
         if not p:
-            return {"code_quality":
-            self._stable_unit_score(path_or_url,
-            "code_quality")}
+            return {
+                "code_quality": self._stable_unit_score(
+                    path_or_url, "code_quality"
+                )
+            }
 
         score = 0.0
 
@@ -69,18 +71,19 @@ class CodeQualityMetric(BaseMetric, Metric):
             score += 0.2
 
         # Tests presence
-        has_tests = (any(
-            (p / name).exists() for name in self.TEST_HINTS)
-                     or bool(list(self._glob(
-                    p,
-                    ["**/*_test.*", "**/test_*.py"]))))
+        has_tests = (
+            any((p / name).exists() for name in self.TEST_HINTS)
+            or bool(list(self._glob(p, ["**/*_test.*", "**/test_*.py"])))
+        )
         if has_tests:
             score += 0.2
 
         # Line length & TODO density over code files
-        code_files = \
-            [f for f in p.rglob("*")
-             if f.is_file() and f.suffix.lower() in self.CODE_EXTS]
+        code_files = [
+            f
+            for f in p.rglob("*")
+            if f.is_file() and f.suffix.lower() in self.CODE_EXTS
+        ]
         if code_files:
             total_lines = 0
             long_lines = 0
@@ -99,14 +102,12 @@ class CodeQualityMetric(BaseMetric, Metric):
 
             if total_lines > 0:
                 long_ratio = long_lines / total_lines
-                # Less long lines -> better (<=5%: +0.2; <=15%: +0.1; else 0)
                 if long_ratio <= 0.05:
                     score += 0.2
                 elif long_ratio <= 0.15:
                     score += 0.1
 
                 todo_ratio = todos / total_lines
-                # Penalize heavy TODOs
                 if todo_ratio <= 0.002:
                     score += 0.1
                 elif todo_ratio >= 0.02:
