@@ -1,7 +1,8 @@
-from typing import Dict
 import re
+from typing import Dict
 
 from src.metrics.metric import Metric
+
 from .base_metric import BaseMetric
 
 
@@ -63,7 +64,11 @@ class LicenseMetric(BaseMetric, Metric):
                 return {"license": 0.5}
 
         # Sometimes license mentioned in README
-        for readme in [p / "README.md", p / "README.rst", p / "README.txt"]:
+        for readme in [
+            p / "README.md",
+            p / "README.rst",
+            p / "README.txt",
+        ]:
             if readme.exists():
                 txt = self._read_text(readme)
                 if re.search(r"\blicense\b", txt, re.I):
