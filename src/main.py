@@ -23,7 +23,6 @@ try:
 except Exception:
     from metrics.net_score import NetScore  # type: ignore
 
-
 def iter_urls(path: Path):
     """Yield non-empty, non-comment lines as URLs."""
     with path.open("r", encoding="utf-8") as fh:
@@ -37,7 +36,6 @@ def iter_urls(path: Path):
                 if u:
                     yield u
 
-
 def _unit(url: str, salt: str) -> float:
     import hashlib as _h
     h = _h.md5((url + "::" + salt).encode("utf-8")).hexdigest()
@@ -48,15 +46,12 @@ def _unit(url: str, salt: str) -> float:
         return 1.0
     return float(v)
 
-
 def _lat_ms(t0: float) -> int:
     return max(1, int(ceil((perf_counter() - t0) * 1000)))
-
 
 def _name_from_url(url: str) -> str:
     base = url.rstrip("/").split("/")[-1]
     return (base or "artifact").lower()
-
 
 def _early_env_exits() -> bool:
     tok = os.getenv("GITHUB_TOKEN", "").strip()
@@ -67,7 +62,6 @@ def _early_env_exits() -> bool:
         return True
     return False
 
-
 def _size_detail(url: str) -> dict:
     return {
         "raspberry_pi": _unit(url, "sz_rpi"),
@@ -75,7 +69,6 @@ def _size_detail(url: str) -> dict:
         "desktop_pc": _unit(url, "sz_pc"),
         "aws_server": _unit(url, "sz_aws"),
     }
-
 
 def _size_scalar(detail: dict) -> float:
     try:
