@@ -24,7 +24,8 @@ class BusFactorMetric(BaseMetric, Metric):
         p = self._as_path(path_or_url)
         if not p or not self._is_git_repo(p):
             return {
-                "bus_factor": self._stable_unit_score(path_or_url, "bus_factor")
+                "bus_factor":
+                    self._stable_unit_score(path_or_url, "bus_factor")
             }
 
         rc, out, _ = self._git(p, "log", "--pretty=%ae")
