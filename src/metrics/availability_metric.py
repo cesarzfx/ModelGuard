@@ -1,7 +1,8 @@
-from typing import Dict
 from datetime import datetime, timezone
+from typing import Dict
 
 from src.metrics.metric import Metric
+
 from .base_metric import BaseMetric
 
 
