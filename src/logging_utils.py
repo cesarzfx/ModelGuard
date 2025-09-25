@@ -72,6 +72,7 @@ def setup_logging() -> tuple[str, str]:
         handler = logging.StreamHandler(stream=sys.stderr)
         sink_desc = "stderr"
 
+
     fmt = logging.Formatter(
         "%(asctime)s %(levelname)s %(name)s: %(message)s"
     )
