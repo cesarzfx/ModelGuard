@@ -1,7 +1,8 @@
 from typing import Dict
 
-from .base_metric import BaseMetric
 from src.metrics.metric import Metric
+
+from .base_metric import BaseMetric
 
 
 class SizeMetric(BaseMetric, Metric):

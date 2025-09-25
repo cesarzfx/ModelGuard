@@ -1,7 +1,8 @@
 import re
 
-from .base_metric import BaseMetric
 from src.metrics.metric import Metric
+
+from .base_metric import BaseMetric
 
 
 class RampUpMetric(BaseMetric, Metric):

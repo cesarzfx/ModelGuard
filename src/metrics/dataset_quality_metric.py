@@ -1,8 +1,9 @@
 import csv
 from pathlib import Path
 
-from .base_metric import BaseMetric
 from src.metrics.metric import Metric
+
+from .base_metric import BaseMetric
 
 
 class DatasetQualityMetric(BaseMetric, Metric):

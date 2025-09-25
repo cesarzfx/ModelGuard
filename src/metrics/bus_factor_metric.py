@@ -1,7 +1,8 @@
 from collections import Counter
 
-from .base_metric import BaseMetric
 from src.metrics.metric import Metric
+
+from .base_metric import BaseMetric
 
 
 class BusFactorMetric(BaseMetric, Metric):
