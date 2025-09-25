@@ -40,14 +40,21 @@ def setup_logging() -> None:
 
     try:
         fh = RotatingFileHandler(
-            log_path, maxBytes=1_000_000, backupCount=1, encoding="utf-8"
+            log_path,
+            maxBytes=1_000_000,
+            backupCount=1,
+            encoding="utf-8",
         )
         fh.setFormatter(
-            logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+            logging.Formatter(
+                "%(asctime)s %(levelname)s %(name)s: %(message)s"
+            )
         )
         root.addHandler(fh)
     except Exception:
-        # If file handler fails (bad path), fall back to STDERR so tests continue
+        # If file handler fails (bad path), fall back to STDERR
         sh = logging.StreamHandler()
-        sh.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+        sh.setFormatter(
+            logging.Formatter("%(levelname)s: %(message)s")
+        )
         root.addHandler(sh)
