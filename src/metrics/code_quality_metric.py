@@ -1,9 +1,10 @@
 import re
 
+from .base_metric import BaseMetric
 from src.metrics.metric import Metric
 
 
-class CodeQualityMetric(Metric):
+class CodeQualityMetric(BaseMetric, Metric):
     """
     Heuristics (language-agnostic):
       + Presence of lint/format configs: .flake8, pyproject, .pylintrc,

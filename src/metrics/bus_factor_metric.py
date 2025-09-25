@@ -1,9 +1,10 @@
 from collections import Counter
 
+from .base_metric import BaseMetric
 from src.metrics.metric import Metric
 
 
-class BusFactorMetric(Metric):
+class BusFactorMetric(BaseMetric, Metric):
     """
     Estimate bus factor via commit author distribution.
 

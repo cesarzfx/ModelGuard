@@ -1,9 +1,10 @@
 from typing import Dict
 
+from .base_metric import BaseMetric
 from src.metrics.metric import Metric
 
 
-class SizeMetric(Metric):
+class SizeMetric(BaseMetric, Metric):
     """
     Project size signals:
       - files: count of tracked files

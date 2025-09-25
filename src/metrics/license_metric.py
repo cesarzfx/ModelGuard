@@ -1,9 +1,10 @@
 import re
 
+from .base_metric import BaseMetric
 from src.metrics.metric import Metric
 
 
-class LicenseMetric(Metric):
+class LicenseMetric(BaseMetric, Metric):
     """
     Recognize common licenses by keyword matching.
     Full credit: recognized SPDX family license present.

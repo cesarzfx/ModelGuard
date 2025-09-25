@@ -1,10 +1,11 @@
 import csv
 from pathlib import Path
 
+from .base_metric import BaseMetric
 from src.metrics.metric import Metric
 
 
-class DatasetQualityMetric(Metric):
+class DatasetQualityMetric(BaseMetric, Metric):
     """
     Heuristics:
       - Look for dataset files: *.csv, *.tsv, *.jsonl

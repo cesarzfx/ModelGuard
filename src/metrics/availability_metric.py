@@ -1,9 +1,10 @@
 from datetime import datetime
 
+from .base_metric import BaseMetric
 from src.metrics.metric import Metric
 
 
-class AvailabilityMetric(Metric):
+class AvailabilityMetric(BaseMetric, Metric):
     """
     Availability heuristic:
       - Repo directory exists -> base availability.

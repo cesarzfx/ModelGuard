@@ -1,9 +1,10 @@
 import re
 
+from .base_metric import BaseMetric
 from src.metrics.metric import Metric
 
 
-class RampUpMetric(Metric):
+class RampUpMetric(BaseMetric, Metric):
     """
     Onboarding ease:
       + README length & structure (badges, install, usage)
