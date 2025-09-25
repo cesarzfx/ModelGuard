@@ -47,8 +47,10 @@ def setup_logging() -> tuple[str, str]:
     Returns a pair (level_name, sink) where sink is 'stderr' or a path.
     """
     parsed = _parse_level(os.getenv("LOG_LEVEL"))
+    # Default WARNING keeps noise low. Change to INFO if you prefer.
     level = logging.WARNING if parsed is None else parsed
 
+    # Reset handlers so we control sinks deterministically.
     root = logging.getLogger()
     for h in list(root.handlers):
         root.removeHandler(h)
@@ -63,15 +65,19 @@ def setup_logging() -> tuple[str, str]:
         except OSError as e:
             print(
                 f"Error: cannot open log file '{log_file}': {e}",
-                file=sys.stderr)
-            sys.exit(1)  # exit non-zero so the autograder flags failure
+                file=sys.stderr,
+            )
+            sys.exit(1)
     else:
         handler = logging.StreamHandler(stream=sys.stderr)
         sink_desc = "stderr"
 
-    fmt = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+    fmt = logging.Formatter(
+        "%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
     handler.setFormatter(fmt)
 
+    # Silent mode: attach a handler but raise the root level above CRITICAL.
     if level == _SILENT_SENTINEL:
         root.addHandler(handler)
         root.setLevel(logging.CRITICAL + 1)
