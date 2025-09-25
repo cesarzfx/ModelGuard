@@ -1,87 +1,39 @@
 from typing import Dict
 
-from src.metrics.metric import Metric
-
 from .base_metric import BaseMetric
+from .metric import Metric
 
 
-class SizeMetric(BaseMetric, Metric):
+class PerformanceClaimsMetric(BaseMetric, Metric):
     """
-    Project size signals:
-      - files: count of tracked files
-      - lines: LOC across code files (rough)
-      - commits: total git commits
+    Project performance claims signals:
+      - claims: heuristic score for performance-related activity
 
-    Returns sub-scores normalized to [0,1] with saturating scales.
+    Returns a sub-score normalized to [0,1] with a saturating scale.
     """
-
-    CODE_EXTS = {
-        ".py",
-        ".js",
-        ".ts",
-        ".java",
-        ".cs",
-        ".go",
-        ".rb",
-        ".cpp",
-        ".c",
-        ".hpp",
-        ".h",
-        ".rs",
-        ".php",
-        ".scala",
-        ".kt",
-    }
 
     def score(self, path_or_url: str) -> Dict[str, float]:
         p = self._as_path(path_or_url)
         if not p or not self._is_git_repo(p):
             # Fallback: deterministic but stable dictionary
             return {
-                "files": self._stable_unit_score(
+                "claims": self._stable_unit_score(
                     path_or_url,
-                    "size_files",
-                ),
-                "lines": self._stable_unit_score(
-                    path_or_url,
-                    "size_lines",
-                ),
-                "commits": self._stable_unit_score(
-                    path_or_url,
-                    "size_commits",
-                ),
+                    "perf_claims",
+                )
             }
 
-        # Files (tracked by git)
-        rc, out, _ = self._git(p, "ls-files")
-        files = out.splitlines() if rc == 0 else []
-        file_count = len(files)
-
-        # Lines (only count code-like files)
-        loc = 0
-        for rel in files[:5000]:  # Cap for huge repos
-            f = p / rel
-            if f.suffix.lower() in self.CODE_EXTS and f.is_file():
-                loc += self._count_lines(f)
-
-        # Commits
+        # Example heuristic:
+        # Use commit count as a proxy for project maturity, which might
+        # indicate more documented performance-related work.
         rc, out, _ = self._git(p, "rev-list", "--count", "HEAD")
-        commits = int(out.strip()) if rc == 0 and out.strip().isdigit() else 0
+        commits = int(out.strip()) if (rc == 0 and out.strip()
+                                       .isdigit()) else 0
 
         return {
-            "files": self._saturating_scale(
-                file_count,
-                knee=200,
-                max_x=2000,
-            ),
-            "lines": self._saturating_scale(
-                loc,
-                knee=50_000,
-                max_x=500_000,
-            ),
-            "commits": self._saturating_scale(
+            "claims": self._saturating_scale(
                 commits,
-                knee=200,
-                max_x=3000,
-            ),
+                knee=100,
+                max_x=1000,
+            )
         }
