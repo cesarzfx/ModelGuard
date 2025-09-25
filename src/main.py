@@ -85,7 +85,7 @@ def _size_scalar(detail: dict) -> float:
 
 def _safe_combine(ns: NetScore, scalars: dict, size_detail: dict) -> float:
     """
-    Try NetScore.combine; on error, 
+    Try NetScore.combine; on error,
     average provided scalars and the mean of size_detail.
     """
     try:
