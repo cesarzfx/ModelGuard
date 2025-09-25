@@ -2,7 +2,6 @@ import pytest
 
 from src.metrics.net_score import NetScore
 
-
 def test_normal_case():
     ns = NetScore("dummy")
     scalar_metrics = {
