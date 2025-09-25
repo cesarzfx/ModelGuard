@@ -1,5 +1,6 @@
 import csv
 from pathlib import Path
+from typing import Dict
 
 from src.metrics.metric import Metric
 
@@ -19,14 +20,19 @@ class DatasetQualityMetric(BaseMetric, Metric):
 
     DATA_GLOBS = ["**/*.csv", "**/*.tsv", "**/*.jsonl"]
 
-    def score(self, path_or_url: str) -> float:
+    def score(self, path_or_url: str) -> Dict[str, float]:
         p = self._as_path(path_or_url)
         if not p:
-            return self._stable_unit_score(path_or_url, "dataset_quality")
+            return {
+                "dataset_quality": self._stable_unit_score(
+                    path_or_url,
+                    "dataset_quality",
+                )
+            }
 
         data_files = self._glob(p, self.DATA_GLOBS)
         if not data_files:
-            return 0.5
+            return {"dataset_quality": 0.5}
 
         # Evaluate at most first 5 files for speed
         score_acc = 0.0
@@ -41,9 +47,9 @@ class DatasetQualityMetric(BaseMetric, Metric):
                 counted += 1
 
         if counted == 0:
-            return 0.5
+            return {"dataset_quality": 0.5}
 
-        return self._clamp01(score_acc / counted)
+        return {"dataset_quality": self._clamp01(score_acc / counted)}
 
     def _score_csv(self, path: Path, delimiter: str) -> float:
         try:
@@ -63,9 +69,7 @@ class DatasetQualityMetric(BaseMetric, Metric):
         # Detect header (unique strings, non-numeric preferred)
         header = rows[0]
         unique_names = len(set(header)) == len(header)
-        alpha_count = sum(
-            1 for x in header if x and not x.isdigit()
-        )
+        alpha_count = sum(1 for x in header if x and not x.isdigit())
         header_is_alpha = alpha_count >= max(1, int(0.6 * len(header)))
         header_score = 0.2 if (unique_names and header_is_alpha) else 0.0
 
@@ -78,13 +82,12 @@ class DatasetQualityMetric(BaseMetric, Metric):
         consistency = counts.count(mode) / len(counts)
 
         # Blank rows ratio
-        blank_rows = sum(
-            1 for r in rows if not any(cell.strip() for cell in r)
-        )
+        blank_rows = sum(1
+                         for r in rows
+                         if not any(cell.strip() for cell in r))
         blank_ratio = blank_rows / len(rows)
 
         s = header_score
-        # high consistency -> +0.5 down to +0.2
         if consistency >= 0.98:
             s += 0.5
         elif consistency >= 0.9:
@@ -92,7 +95,6 @@ class DatasetQualityMetric(BaseMetric, Metric):
         elif consistency >= 0.75:
             s += 0.2
 
-        # penalize many blank rows
         if blank_ratio >= 0.1:
             s -= 0.1
 
@@ -117,7 +119,6 @@ class DatasetQualityMetric(BaseMetric, Metric):
             return 0.3
 
         ratio = valid / total
-        # Mostly object-per-line -> good
         if ratio >= 0.98:
             return 0.8
         if ratio >= 0.9:

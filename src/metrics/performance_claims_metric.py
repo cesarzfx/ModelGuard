@@ -7,7 +7,7 @@ from .metric import Metric
 class PerformanceClaimsMetric(BaseMetric, Metric):
     """
     Project performance claims signals:
-      - claims: heuristic score for performance-related activity
+      - performance_claims: heuristic score for performance-related activity
 
     Returns a sub-score normalized to [0,1] with a saturating scale.
     """
@@ -17,7 +17,7 @@ class PerformanceClaimsMetric(BaseMetric, Metric):
         if not p or not self._is_git_repo(p):
             # Fallback: deterministic but stable dictionary
             return {
-                "claims": self._stable_unit_score(
+                "performance_claims": self._stable_unit_score(
                     path_or_url,
                     "perf_claims",
                 )
@@ -27,11 +27,11 @@ class PerformanceClaimsMetric(BaseMetric, Metric):
         # Use commit count as a proxy for project maturity, which might
         # indicate more documented performance-related work.
         rc, out, _ = self._git(p, "rev-list", "--count", "HEAD")
-        commits = int(out.strip()) if (rc == 0 and out.strip()
-                                       .isdigit()) else 0
+        commits = int(out.strip()) if \
+            (rc == 0 and out.strip().isdigit()) else 0
 
         return {
-            "claims": self._saturating_scale(
+            "performance_claims": self._saturating_scale(
                 commits,
                 knee=100,
                 max_x=1000,

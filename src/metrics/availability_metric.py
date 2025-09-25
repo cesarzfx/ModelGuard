@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Dict
 
 from src.metrics.metric import Metric
 
@@ -14,10 +15,13 @@ class AvailabilityMetric(BaseMetric, Metric):
     Fallback: stable placeholder if not a local path.
     """
 
-    def score(self, path_or_url: str) -> float:
+    def score(self, path_or_url: str) -> Dict[str, float]:
         p = self._as_path(path_or_url)
         if not p:
-            return self._stable_unit_score(path_or_url, "availability")
+            return {
+                "availability":
+                    self._stable_unit_score(path_or_url, "availability")
+            }
 
         score = 0.0
 
@@ -32,11 +36,12 @@ class AvailabilityMetric(BaseMetric, Metric):
             rc, out, _ = self._git(p, "log", "-1", "--format=%ct")
             if rc == 0 and out.strip().isdigit():
                 ts = int(out.strip())
-                last_commit = datetime.utcfromtimestamp(ts)
-                days_since = (datetime.utcnow() - last_commit).days
+                last_commit = datetime.fromtimestamp(ts, tz=timezone.utc)
+                days_since = (datetime.now(timezone.utc) - last_commit).days
                 # full points if commit within 90 days; fades to 0 by 365 days
                 if days_since <= 90:
                     score += 0.4
                 elif days_since <= 365:
                     score += 0.4 * (1 - (days_since - 90) / 275)
-        return self._clamp01(score)
+
+        return {"availability": self._clamp01(score)}

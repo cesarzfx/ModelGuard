@@ -1,4 +1,5 @@
 import re
+from typing import Dict
 
 from src.metrics.metric import Metric
 
@@ -50,10 +51,14 @@ class CodeQualityMetric(BaseMetric, Metric):
         ".php",
     }
 
-    def score(self, path_or_url: str) -> float:
+    def score(self, path_or_url: str) -> Dict[str, float]:
         p = self._as_path(path_or_url)
         if not p:
-            return self._stable_unit_score(path_or_url, "code_quality")
+            return {
+                "code_quality": self._stable_unit_score(
+                    path_or_url, "code_quality"
+                )
+            }
 
         score = 0.0
 
@@ -62,14 +67,14 @@ class CodeQualityMetric(BaseMetric, Metric):
         score += min(0.3, 0.1 * linters_found)
 
         # CI presence
-        ci_files = self._glob(p, self.CI_GLOB)
+        ci_files = list(self._glob(p, self.CI_GLOB))
         if ci_files:
             score += 0.2
 
         # Tests presence
-        has_tests = any((p / name)
-                        .exists() for name in self.TEST_HINTS) or bool(
-            self._glob(p, ["**/*_test.*", "**/test_*.py"])
+        has_tests = (
+            any((p / name).exists() for name in self.TEST_HINTS)
+            or bool(list(self._glob(p, ["**/*_test.*", "**/test_*.py"])))
         )
         if has_tests:
             score += 0.2
@@ -84,7 +89,6 @@ class CodeQualityMetric(BaseMetric, Metric):
             total_lines = 0
             long_lines = 0
             todos = 0
-            # Cap to avoid scanning extremely large repositories
             for f in code_files[:2000]:
                 try:
                     with f.open("r", encoding="utf-8", errors="ignore") as fh:
@@ -99,17 +103,15 @@ class CodeQualityMetric(BaseMetric, Metric):
 
             if total_lines > 0:
                 long_ratio = long_lines / total_lines
-                # Less long lines -> better (<=5%: +0.2; <=15%: +0.1; else 0)
                 if long_ratio <= 0.05:
                     score += 0.2
                 elif long_ratio <= 0.15:
                     score += 0.1
 
                 todo_ratio = todos / total_lines
-                # Penalize heavy TODOs
                 if todo_ratio <= 0.002:
                     score += 0.1
                 elif todo_ratio >= 0.02:
                     score -= 0.05
 
-        return self._clamp01(score)
+        return {"code_quality": self._clamp01(score)}
