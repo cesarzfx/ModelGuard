@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import logging
 import os
-from logging import handlers
+from logging.handlers import RotatingFileHandler
 
-_SILENT_SENTINEL = 100
+_SILENT = 100  # sentinel for "no logging, but create/truncate file"
 
 
 def _parse_level(raw: str | None) -> int | None:
-    if raw is None:
+    if not raw:
         return None
     v = raw.strip().lower()
     if v in {"0", "off", "none", "silent"}:
-        return _SILENT_SENTINEL
+        return _SILENT
     if v == "1":
         return logging.INFO
     if v == "2":
@@ -24,33 +24,37 @@ def setup_logging() -> None:
     lvl = _parse_level(os.getenv("LOG_LEVEL"))
     log_path = os.getenv("LOG_FILE", "app.log")
 
-    if lvl == _SILENT_SENTINEL:
+    if lvl == _SILENT:
+        # Create/truncate the file but attach no handlers
         try:
-            # create blank file and do not attach handlers
             with open(log_path, "w", encoding="utf-8"):
                 pass
         except Exception:
-            # even if path is bad, never crash
+            # Even if path is bad, never crash
             pass
         return
 
-    # normal logging
-    logger = logging.getLogger()
-    logger.setLevel(lvl or logging.INFO)
-    logger.handlers[:] = []
+    root = logging.getLogger()
+    root.handlers[:] = []
+    root.setLevel(lvl or logging.INFO)
 
     try:
-        fh = handlers.RotatingFileHandler(
-            log_path, maxBytes=1_000_000, backupCount=1, encoding="utf-8"
+        fh = RotatingFileHandler(
+            log_path,
+            maxBytes=1_000_000,
+            backupCount=1,
+            encoding="utf-8",
         )
-        fmt = logging.Formatter(
-            "%(asctime)s %(levelname)s %(name)s: %(message)s"
+        fh.setFormatter(
+            logging.Formatter(
+                "%(asctime)s %(levelname)s %(name)s: %(message)s"
+            )
         )
-        fh.setFormatter(fmt)
-        logger.addHandler(fh)
+        root.addHandler(fh)
     except Exception:
-        # if log path invalid, fall back to STDERR only
+        # If file handler fails (bad path), fall back to STDERR
         sh = logging.StreamHandler()
-        fmt = logging.Formatter("%(levelname)s: %(message)s")
-        sh.setFormatter(fmt)
-        logger.addHandler(sh)
+        sh.setFormatter(
+            logging.Formatter("%(levelname)s: %(message)s")
+        )
+        root.addHandler(sh)
