@@ -83,15 +83,19 @@ def _size_scalar(detail: dict) -> float:
         return 0.0
 
 
-def _safe_combine(ns: NetScore, scalars: dict, size_scalar: float) -> float:
+def _safe_combine(ns: NetScore, scalars: dict, size_detail: dict) -> float:
     """
-    Try NetScore.combine; on error, average provided scalars and size.
+    Try NetScore.combine; on error, average provided scalars and the mean of size_detail.
     """
     try:
-        return ns.combine(scalars, size_scalar)
+        return ns.combine(scalars, size_detail)
     except Exception:
         vals = [float(max(0.0, min(1.0, v))) for v in scalars.values()]
-        vals.append(float(max(0.0, min(1.0, size_scalar))))
+        try:
+            size_mean = float(min(1.0, max(0.0, fmean(size_detail.values()))))
+        except Exception:
+            size_mean = 0.0
+        vals.append(size_mean)
         return (sum(vals) / len(vals)) if vals else 0.5
 
 
@@ -118,7 +122,7 @@ def _record(ns: NetScore, url: str) -> dict:
         "dataset_and_code_score": dac,
     }
 
-    net = _safe_combine(ns, scores_for_net, sz_scalar)
+    net = _safe_combine(ns, scores_for_net, sz_detail)
 
     return {
         "url": url,
@@ -147,7 +151,7 @@ def _record(ns: NetScore, url: str) -> dict:
 
 def compute_all(path: Path) -> list[dict]:
     rows: list[dict] = []
-    ns = NetScore(path)
+    ns = NetScore(str(path))
     for url in iter_urls(path):
         rows.append(_record(ns, url))
     return rows
