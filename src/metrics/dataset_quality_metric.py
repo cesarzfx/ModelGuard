@@ -11,7 +11,8 @@ class DatasetQualityMetric(Metric):
       - For CSV/TSV: check consistent column counts across first 100 rows
       - Penalize many blank rows
       - Reward presence of a header row (unique column names)
-    If no datasets are present, return 0.5 as neutral (doesn't penalize code repos).
+    If no datasets are present, return 0.5 as neutral
+    (doesn't penalize code repos).
     """
 
     DATA_GLOBS = ["**/*.csv", "**/*.tsv", "**/*.jsonl"]
@@ -30,7 +31,8 @@ class DatasetQualityMetric(Metric):
         counted = 0
         for f in data_files[:5]:
             if f.suffix.lower() in {".csv", ".tsv"}:
-                score_acc += self._score_csv(f, delimiter="\t" if f.suffix.lower()==".tsv" else ",")
+                delim = "\t" if f.suffix.lower() == ".tsv" else ","
+                score_acc += self._score_csv(f, delimiter=delim)
                 counted += 1
             elif f.suffix.lower() == ".jsonl":
                 score_acc += self._score_jsonl(f)
@@ -59,7 +61,10 @@ class DatasetQualityMetric(Metric):
         # Detect header (unique strings, non-numeric preferred)
         header = rows[0]
         unique_names = len(set(header)) == len(header)
-        header_is_alpha = sum(1 for x in header if x and not x.isdigit()) >= max(1, int(0.6 * len(header)))
+        alpha_count = sum(
+            1 for x in header if x and not x.isdigit()
+        )
+        header_is_alpha = alpha_count >= max(1, int(0.6 * len(header)))
         header_score = 0.2 if (unique_names and header_is_alpha) else 0.0
 
         # Consistent column counts
@@ -71,7 +76,9 @@ class DatasetQualityMetric(Metric):
         consistency = counts.count(mode) / len(counts)
 
         # Blank rows ratio
-        blank_rows = sum(1 for r in rows if not any(cell.strip() for cell in r))
+        blank_rows = sum(
+            1 for r in rows if not any(cell.strip() for cell in r)
+        )
         blank_ratio = blank_rows / len(rows)
 
         s = header_score
@@ -103,8 +110,10 @@ class DatasetQualityMetric(Metric):
                         valid += 1
         except Exception:
             return 0.4
+
         if total == 0:
             return 0.3
+
         ratio = valid / total
         # Mostly object-per-line -> good
         if ratio >= 0.98:

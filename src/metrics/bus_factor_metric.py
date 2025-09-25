@@ -6,11 +6,14 @@ from src.metrics.metric import Metric
 class BusFactorMetric(Metric):
     """
     Estimate bus factor via commit author distribution.
+
     Higher diversity (less dominance by a single author) -> higher score.
+
     Heuristic:
       - Get top N commits (default all) and count authors.
       - Score = 1 - max_author_share.
       - Scale by total number of contributors (more is better).
+
     Fallback: stable placeholder if not a local path.
     """
 

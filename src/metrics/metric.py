@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from pathlib import Path
 from typing import Optional
 
@@ -10,8 +10,9 @@ class Metric(ABC):
 
     def _stable_unit_score(self, path_or_url: str, metric_name: str) -> float:
         """
-        Returns a stable placeholder score for non-local paths or unsupported cases.
-        This avoids random output and makes results predictable for URLs.
+        Returns a stable placeholder score for non-local paths
+        or unsupported cases. This avoids random output and makes
+        results predictable for URLs.
         """
         fallback_scores = {
             "availability": 0.2,

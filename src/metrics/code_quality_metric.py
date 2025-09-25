@@ -6,7 +6,8 @@ from src.metrics.metric import Metric
 class CodeQualityMetric(Metric):
     """
     Heuristics (language-agnostic):
-      + Presence of lint/format configs: .flake8, pyproject, .pylintrc, .editorconfig, .eslintrc.*, .prettierrc.*
+      + Presence of lint/format configs: .flake8, pyproject, .pylintrc,
+        .editorconfig, .eslintrc.*, .prettierrc.*
       + CI present: .github/workflows/*
       + Tests present: tests/ or *_test.* files
       + Average line length <= 120 over code files
@@ -15,18 +16,37 @@ class CodeQualityMetric(Metric):
     """
 
     LINTER_GLOBS = [
-        ".flake8", "pyproject.toml", ".pylintrc",
-        ".editorconfig", ".eslintrc", ".eslintrc.js", ".eslintrc.json",
-        ".prettierrc", ".prettierrc.js", ".prettierrc.json"
+        ".flake8",
+        "pyproject.toml",
+        ".pylintrc",
+        ".editorconfig",
+        ".eslintrc",
+        ".eslintrc.js",
+        ".eslintrc.json",
+        ".prettierrc",
+        ".prettierrc.js",
+        ".prettierrc.json",
     ]
 
     CI_GLOB = [".github/workflows/*.yml", ".github/workflows/*.yaml"]
 
-    TEST_HINTS = [
-        "tests", "test", "spec"
-    ]
+    TEST_HINTS = ["tests", "test", "spec"]
 
-    CODE_EXTS = {".py", ".js", ".ts", ".java", ".cs", ".go", ".rb", ".cpp", ".c", ".hpp", ".h", ".rs", ".php"}
+    CODE_EXTS = {
+        ".py",
+        ".js",
+        ".ts",
+        ".java",
+        ".cs",
+        ".go",
+        ".rb",
+        ".cpp",
+        ".c",
+        ".hpp",
+        ".h",
+        ".rs",
+        ".php",
+    }
 
     def score(self, path_or_url: str) -> float:
         p = self._as_path(path_or_url)
@@ -45,12 +65,16 @@ class CodeQualityMetric(Metric):
             score += 0.2
 
         # Tests presence
-        has_tests = any((p / name).exists() for name in self.TEST_HINTS) or bool(self._glob(p, ["**/*_test.*", "**/test_*.py"]))
+        has_tests = any((p / name).exists() for name in self.TEST_HINTS) or bool(
+            self._glob(p, ["**/*_test.*", "**/test_*.py"])
+        )
         if has_tests:
             score += 0.2
 
         # Line length & TODO density over code files
-        code_files = [f for f in p.rglob("*") if f.is_file() and f.suffix.lower() in self.CODE_EXTS]
+        code_files = [
+            f for f in p.rglob("*") if f.is_file() and f.suffix.lower() in self.CODE_EXTS
+        ]
         if code_files:
             total_lines = 0
             long_lines = 0

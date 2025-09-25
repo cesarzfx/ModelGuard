@@ -7,14 +7,14 @@ class NetScore:
     Weighted composite score.
 
     Default weights (sum to 1):
-      availability:         0.10
-      bus factor:           0.15
-      code quality:         0.20
-      dataset quality:      0.05
-      license:              0.10
-      performance claims:   0.10
-      ramp up:              0.15
-      size (aggregate):     0.15
+      availability:       0.10
+      bus factor:         0.15
+      code quality:       0.20
+      dataset quality:    0.05
+      license:            0.10
+      performance claims: 0.10
+      ramp up:            0.15
+      size (aggregate):   0.15
     """
 
     def __init__(self, url_or_path: str):
@@ -30,7 +30,11 @@ class NetScore:
             "size": 0.15,
         }
 
-    def combine(self, scores: Dict[str, float], size_scores: Dict[str, float]) -> float:
+    def combine(
+        self,
+        scores: Dict[str, float],
+        size_scores: Dict[str, float],
+    ) -> float:
         size_val = mean(size_scores.values()) if size_scores else 0.0
         total = 0.0
         wsum = 0.0

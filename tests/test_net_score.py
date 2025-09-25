@@ -16,9 +16,11 @@ def test_normal_case():
     # You may need to update the expected value based on weights
     assert 0.0 <= result <= 1.0
 
+
 def test_empty_inputs():
     ns = NetScore("dummy")
     assert ns.combine({}, {}) == 0.0
+
 
 def test_only_scalar_metrics():
     ns = NetScore("dummy")
@@ -29,15 +31,18 @@ def test_only_scalar_metrics():
     }
     assert 0.0 <= ns.combine(scalar_metrics, {}) <= 1.0
 
+
 def test_only_size_score():
     ns = NetScore("dummy")
     size_score = {"desktop_pc": 0.3, "aws_server": 0.9}
     assert 0.0 <= ns.combine({}, size_score) <= 1.0
 
+
 def test_clamping_below_zero():
     ns = NetScore("dummy")
     result = ns.combine({"availability": -10.0}, {"device": -2.0})
     assert result == 0.0
+
 
 def test_clamping_above_one():
     ns = NetScore("dummy")
