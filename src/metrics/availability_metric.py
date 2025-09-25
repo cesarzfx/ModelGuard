@@ -17,7 +17,8 @@ class AvailabilityMetric(BaseMetric, Metric):
     def score(self, path_or_url: str) -> dict:
         p = self._as_path(path_or_url)
         if not p:
-            return {"availability": self._stable_unit_score(path_or_url, "availability")}
+            return {"availability":
+                        self._stable_unit_score(path_or_url, "availability")}
 
         score = 0.0
 

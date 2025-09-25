@@ -53,7 +53,9 @@ class CodeQualityMetric(BaseMetric, Metric):
     def score(self, path_or_url: str) -> dict:
         p = self._as_path(path_or_url)
         if not p:
-            return {"code_quality": self._stable_unit_score(path_or_url, "code_quality")}
+            return {"code_quality":
+                        self._stable_unit_score(path_or_url,
+                                                "code_quality")}
 
         score = 0.0
 
@@ -67,12 +69,18 @@ class CodeQualityMetric(BaseMetric, Metric):
             score += 0.2
 
         # Tests presence
-        has_tests = any((p / name).exists() for name in self.TEST_HINTS) or bool(list(self._glob(p, ["**/*_test.*", "**/test_*.py"])))
+        has_tests = (any(
+            (p / name).exists() for name in self.TEST_HINTS)
+                     or bool(list(self._glob(
+                    p,
+                    ["**/*_test.*", "**/test_*.py"]))))
         if has_tests:
             score += 0.2
 
         # Line length & TODO density over code files
-        code_files = [f for f in p.rglob("*") if f.is_file() and f.suffix.lower() in self.CODE_EXTS]
+        code_files = \
+            [f for f in p.rglob("*")
+             if f.is_file() and f.suffix.lower() in self.CODE_EXTS]
         if code_files:
             total_lines = 0
             long_lines = 0

@@ -82,7 +82,9 @@ class DatasetQualityMetric(BaseMetric, Metric):
         consistency = counts.count(mode) / len(counts)
 
         # Blank rows ratio
-        blank_rows = sum(1 for r in rows if not any(cell.strip() for cell in r))
+        blank_rows = sum(1
+                         for r in rows
+                         if not any(cell.strip() for cell in r))
         blank_ratio = blank_rows / len(rows)
 
         s = header_score
