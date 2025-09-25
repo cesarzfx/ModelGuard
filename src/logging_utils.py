@@ -5,24 +5,29 @@ import logging
 import os
 import sys
 
-# Higher than CRITICAL; used to represent "silent".
+# Define a sentinel value for "silent" mode that is safely above any
+# standard logging level (CRITICAL is 50).
 _SILENT_SENTINEL = 100
 
 
 def _parse_level(raw: str | None) -> int | None:
-    """Map env text to a logging level int or the silent sentinel.
+    """Map an environment variable string to a logging level integer.
 
-    Accepts:
-      - 0/off/none/silent -> silent
-      - 1 -> INFO
-      - 2 -> DEBUG
-      - debug|info|warn|warning|error|critical
+    This function provides user-friendly shortcuts for setting the log level.
+
+    Args:
+        raw: The raw string from the LOG_LEVEL environment variable.
+
+    Returns:
+        The corresponding logging level constant (e.g., logging.INFO),
+        the silent sentinel value, or None if the input is empty.
     """
-    if raw is None:
+    if not raw:
         return None
 
     val = raw.strip().lower()
 
+    # Numeric and special string mappings
     if val in {"0", "off", "none", "silent"}:
         return _SILENT_SENTINEL
     if val == "1":
@@ -30,6 +35,7 @@ def _parse_level(raw: str | None) -> int | None:
     if val == "2":
         return logging.DEBUG
 
+    # Standard logging level names
     aliases = {
         "debug": logging.DEBUG,
         "info": logging.INFO,
@@ -42,30 +48,43 @@ def _parse_level(raw: str | None) -> int | None:
 
 
 def setup_logging() -> tuple[str, str]:
-    """Configure logging from LOG_LEVEL and LOG_FILE.
+    """Configure the root logger based on environment variables.
 
-    Returns a pair (level_name, sink) where sink is 'stderr' or a path.
+    This function sets up logging to either a file (from LOG_FILE) or
+    stderr, and at a level specified by LOG_LEVEL. It ensures that
+    logging is configured deterministically by first removing any
+    existing handlers on the root logger.
+
+    It will exit the program with an error if LOG_FILE is specified but
+    cannot be written to.
+
+    Returns:
+        A pair containing the lowercase level name (e.g., "info", "silent")
+        and the sink description ("stderr" or the log file path).
     """
-    # This part of your function is fine
-    parsed = _parse_level(os.getenv("LOG_LEVEL"))
-    level = logging.WARNING if parsed is None else parsed
+    # Determine the logging level, defaulting to WARNING for clean output.
+    parsed_level = _parse_level(os.getenv("LOG_LEVEL"))
+    level = logging.WARNING if parsed_level is None else parsed_level
 
     root = logging.getLogger()
+    # Reset all handlers to ensure our configuration is the only one active.
+    # This prevents duplicate log messages if this function is called multiple times.
     for h in list(root.handlers):
         root.removeHandler(h)
 
     log_file = os.getenv("LOG_FILE")
 
-    # --- Start of the corrected block ---
+    # --- Robustly determine the log handler ---
     if log_file:
         try:
-            # If a log file is specified, try to use it.
+            # If a log file is specified, attempt to use it.
             handler: logging.Handler = logging.FileHandler(
                 log_file, encoding="utf-8"
             )
             sink_desc = log_file
         except OSError as e:
-            # If opening the file fails, print a clear error and exit.
+            # If the log file cannot be opened, it's a critical configuration
+            # error. Print a message to stderr and exit.
             print(
                 f"Error: cannot open log file '{log_file}': {e}",
                 file=sys.stderr,
@@ -75,19 +94,21 @@ def setup_logging() -> tuple[str, str]:
         # If no log file is specified, default to logging to the console.
         handler = logging.StreamHandler(stream=sys.stderr)
         sink_desc = "stderr"
-    # --- End of the corrected block ---
 
-    # This part of your function is also fine
-    fmt = logging.Formatter(
-        "%(asctime)s %(levelname)s %(name)s: %(message)s"
+    # --- Configure formatter and apply handler ---
+    log_format = logging.Formatter(
+        "%(asctime)s %(levelname)-8s %(name)s: %(message)s"
     )
-    handler.setFormatter(fmt)
+    handler.setFormatter(log_format)
 
+    # Special handling for "silent" mode.
     if level == _SILENT_SENTINEL:
         root.addHandler(handler)
+        # Set the root level higher than any possible message to suppress all output.
         root.setLevel(logging.CRITICAL + 1)
         return "silent", sink_desc
 
+    # For standard levels, apply the level to both the handler and the root logger.
     handler.setLevel(level)
     root.addHandler(handler)
     root.setLevel(level)

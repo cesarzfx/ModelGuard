@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from time import perf_counter
 
+# Make sure this import points to your corrected logging file
 from src.logging_utils import setup_logging
 from src.metrics.net_score import NetScore
 
@@ -56,17 +57,10 @@ def _infer_name_category(url: str) -> tuple[str, str]:
 
 def process_url(url: str) -> dict:
     """
-    Build a full NDJSON record matching the table:
-      - all *_latency fields are integers in ms
-      - all scores are in [0,1]
-      - net_score is the mean of scalar metrics + mean(size_score.values())
-    Also retains earlier fields: url, scores, latency, latency_ms
+    Build a full NDJSON record matching the table.
     """
     overall_t0 = perf_counter()
-
     name, category = _infer_name_category(url)
-
-    # Core scalar metrics (deterministic)
     (ramp_up_time, ramp_up_time_latency) = _time_ms(
         lambda: _stable_unit_score(url, "ramp_up_time")
     )
@@ -88,8 +82,6 @@ def process_url(url: str) -> dict:
     (code_quality, code_quality_latency) = _time_ms(
         lambda: _stable_unit_score(url, "code_quality")
     )
-
-    # size_score is a dict of device->score
     def _build_size():
         return {
             "raspberry_pi": _stable_unit_score(
@@ -105,11 +97,7 @@ def process_url(url: str) -> dict:
                 url, "size_score::aws_server"
             ),
         }
-
     (size_score, size_score_latency) = _time_ms(_build_size)
-
-    # net_score is the average of all scalar metrics plus
-    # the mean of the size_score values
     scalar_metrics = [
         ramp_up_time,
         bus_factor,
@@ -119,19 +107,15 @@ def process_url(url: str) -> dict:
         dataset_quality,
         code_quality,
     ]
-
     ns = NetScore(url)
     (net_score, net_score_latency) = _time_ms(
         lambda: ns.score(scalar_metrics, size_score)
     )
-
-    # Keep your earlier mini 'scores' for compatibility
     scores = {
         "relevance": _stable_unit_score(url, "relevance"),
         "safety": _stable_unit_score(url, "safety"),
         "quality": _stable_unit_score(url, "quality"),
     }
-
     overall_latency_s = perf_counter() - overall_t0
     record = {
         "url": url,
@@ -156,7 +140,6 @@ def process_url(url: str) -> dict:
         "code_quality": round(code_quality, 6),
         "code_quality_latency": int(code_quality_latency),
         "scores": scores,
-        # clamp latency into [0,1] to satisfy autograder
         "latency": max(0.0, min(1.0, round(overall_latency_s, 6))),
         "latency_ms": int(math.floor(overall_latency_s * 1000)),
     }
@@ -173,17 +156,6 @@ def main(argv: list[str] | None = None) -> int:
         print("Error: Invalid GitHub token", file=sys.stderr)
         return 1
 
-    # --- Log file path validation ---
-    if sink:
-        try:
-            os.makedirs(os.path.dirname(sink), exist_ok=True)
-            with open(sink, "a"):  # append mode creates file if needed
-
-                pass
-        except Exception:
-            print("Error: Invalid log file path", file=sys.stderr)
-            return 1
-
     args = list(sys.argv[1:] if argv is None else argv)
     if not args:
         print("Usage: python -m src.main <url_file>", file=sys.stderr)
@@ -194,15 +166,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Error: file not found: {url_file}", file=sys.stderr)
         return 2
 
+    # --- Corrected URL processing loop ---
     count = 0
-    with url_file.open("r", encoding="utf-8") as fh:
-        for raw in fh:
-            url = raw.strip()
-            if not url or url.startswith("#"):
-                continue
-            record = process_url(url)
-            print(json.dumps(record, ensure_ascii=False), flush=True)
-            count += 1
+    for url in iter_urls(url_file):
+        record = process_url(url)
+        print(json.dumps(record, ensure_ascii=False), flush=True)
+        count += 1
 
     if count == 0:
         print("Error: no valid URLs processed", file=sys.stderr)
