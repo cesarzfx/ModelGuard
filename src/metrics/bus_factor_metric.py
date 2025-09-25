@@ -40,7 +40,7 @@ class BusFactorMetric(BaseMetric, Metric):
         counts = Counter(authors)
         max_share = max(counts.values()) / max(1, total)
         diversity = 1.0 - max_share
-        contrib_scale = self._saturating_scale(len(counts))
+        contrib_scale = self._saturating_scale(len(counts), knee=5, max_x=20)
         return {
             "bus_factor": self._clamp01(0.7 * diversity + 0.3 * contrib_scale)
         }
