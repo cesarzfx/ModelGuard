@@ -83,17 +83,38 @@ def _size_scalar(detail: dict) -> float:
 
 
 def _record(ns: NetScore, url: str) -> dict:
-    t0 = perf_counter()
-
+    # Measure each metric's value and latency separately
+    t0_ramp = perf_counter()
     ramp = _unit(url, "ramp_up_time")
-    bus = _unit(url, "bus_factor")
-    perf = _unit(url, "performance_claims")
-    lic = _unit(url, "license")
-    cq = _unit(url, "code_quality")
-    dq = _unit(url, "dataset_quality")
-    dac = fmean([cq, dq])
+    ramp_latency = _lat_ms(t0_ramp)
 
+    t0_bus = perf_counter()
+    bus = _unit(url, "bus_factor")
+    bus_latency = _lat_ms(t0_bus)
+
+    t0_perf = perf_counter()
+    perf = _unit(url, "performance_claims")
+    perf_latency = _lat_ms(t0_perf)
+
+    t0_lic = perf_counter()
+    lic = _unit(url, "license")
+    lic_latency = _lat_ms(t0_lic)
+
+    t0_cq = perf_counter()
+    cq = _unit(url, "code_quality")
+    cq_latency = _lat_ms(t0_cq)
+
+    t0_dq = perf_counter()
+    dq = _unit(url, "dataset_quality")
+    dq_latency = _lat_ms(t0_dq)
+
+    t0_dac = perf_counter()
+    dac = fmean([cq, dq])
+    dac_latency = _lat_ms(t0_dac)
+
+    t0_sz = perf_counter()
     sz_detail = _size_detail(url)
+    size_latency = _lat_ms(t0_sz)
 
     scores_for_net = {
         "ramp_up_time": ramp,
@@ -105,6 +126,12 @@ def _record(ns: NetScore, url: str) -> dict:
         "dataset_and_code_score": dac,
     }
 
+    # Net score latency is the sum of all metric latencies (including size)
+    net_score_latency = (
+        ramp_latency + bus_latency + perf_latency + lic_latency +
+        cq_latency + dq_latency + dac_latency + size_latency
+    )
+
     net = ns.combine(scores_for_net, sz_detail)
 
     rec = {
@@ -112,23 +139,23 @@ def _record(ns: NetScore, url: str) -> dict:
         "name": _name_from_url(url),
         "category": "CODE",
         "net_score": net,
-        "net_score_latency": _lat_ms(t0),
+        "net_score_latency": net_score_latency,
         "ramp_up_time": ramp,
-        "ramp_up_time_latency": _lat_ms(t0),
+        "ramp_up_time_latency": ramp_latency,
         "bus_factor": bus,
-        "bus_factor_latency": _lat_ms(t0),
+        "bus_factor_latency": bus_latency,
         "performance_claims": perf,
-        "performance_claims_latency": _lat_ms(t0),
+        "performance_claims_latency": perf_latency,
         "license": lic,
-        "license_latency": _lat_ms(t0),
+        "license_latency": lic_latency,
         "size_score": sz_detail,
-        "size_score_latency": _lat_ms(t0),
+        "size_score_latency": size_latency,
         "dataset_and_code_score": dac,
-        "dataset_and_code_score_latency": _lat_ms(t0),
+        "dataset_and_code_score_latency": dac_latency,
         "dataset_quality": dq,
-        "dataset_quality_latency": _lat_ms(t0),
+        "dataset_quality_latency": dq_latency,
         "code_quality": cq,
-        "code_quality_latency": _lat_ms(t0),
+        "code_quality_latency": cq_latency,
     }
     return rec
 
