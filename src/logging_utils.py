@@ -48,9 +48,17 @@ def setup_logging() -> None:
         )
         fh.setFormatter(fmt)
         logger.addHandler(fh)
+
+        # Test the file by writing a simple message to verify it's working
+        if lvl == logging.INFO:
+            logger.info("Log initialized with INFO level")
+        elif lvl == logging.DEBUG:
+            logger.debug("Log initialized with DEBUG level")
     except Exception:
         # if log path invalid, fall back to STDERR only
         sh = logging.StreamHandler()
         fmt = logging.Formatter("%(levelname)s: %(message)s")
         sh.setFormatter(fmt)
         logger.addHandler(sh)
+        # Log a message to indicate the log file path was invalid
+        logger.error(f"Invalid log file path: {log_path}")

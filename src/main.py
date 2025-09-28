@@ -60,6 +60,8 @@ def _early_env_exits() -> bool:
         msg = "Error: Invalid GitHub token"
         print(msg, file=sys.stdout, flush=True)
         print(msg, file=sys.stderr, flush=True)
+        sys.stderr.flush()  # Make sure stderr is flushed
+        sys.stdout.flush()  # Make sure stdout is flushed
         return True
     return False
 
@@ -92,7 +94,6 @@ def _record(ns: NetScore, url: str) -> dict:
     dac = fmean([cq, dq])
 
     sz_detail = _size_detail(url)
-    sz_scalar = _size_scalar(sz_detail)
 
     scores_for_net = {
         "ramp_up_time": ramp,
@@ -104,7 +105,7 @@ def _record(ns: NetScore, url: str) -> dict:
         "dataset_and_code_score": dac,
     }
 
-    net = ns.combine(scores_for_net, sz_scalar)
+    net = ns.combine(scores_for_net, sz_detail)
 
     rec = {
         "url": url,
@@ -134,7 +135,7 @@ def _record(ns: NetScore, url: str) -> dict:
 
 def compute_all(path: Path) -> list[dict]:
     rows: list[dict] = []
-    ns = NetScore(path)
+    ns = NetScore(str(path))
     for url in iter_urls(path):
         try:
             rows.append(_record(ns, url))
@@ -151,7 +152,7 @@ def compute_all(path: Path) -> list[dict]:
                 "dataset_and_code_score": 0.0,
             }
             try:
-                net = NetScore(path).combine(zeros, 0.0)
+                net = NetScore(str(path)).combine(zeros, {"dummy": 0.0})
             except Exception:
                 net = 0.0
             rows.append({

@@ -62,6 +62,41 @@ def test_setup_logging_silent():
             logger.handlers = original_handlers
 
 
+def test_setup_logging_level_1():
+    """Test setup_logging with log level 1 (INFO)."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        log_file = Path(tmp_dir) / "test.log"
+        os.environ["LOG_LEVEL"] = "1"
+        os.environ["LOG_FILE"] = str(log_file)
+
+        # Save the original handlers to restore later
+        logger = logging.getLogger()
+        original_handlers = list(logger.handlers)
+        original_level = logger.level
+
+        try:
+            setup_logging()
+
+            # Check that log file was created
+            assert log_file.exists()
+
+            # Check that logger was set to INFO level
+            assert logger.level == logging.INFO
+
+            # Log a message to verify it gets written
+            logger.info("Test info message")
+
+            # Verify the log file has content
+            with open(log_file, 'r') as f:
+                content = f.read()
+                assert content != ""
+                assert "INFO" in content
+        finally:
+            # Restore original settings
+            logger.handlers = original_handlers
+            logger.level = original_level
+
+
 def test_setup_logging_with_valid_file():
     """Test setup_logging with a valid log file path."""
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -82,6 +117,14 @@ def test_setup_logging_with_valid_file():
 
             # Check that logger was set to INFO level
             assert logger.level == logging.INFO
+
+            # Log a message to ensure the file gets written to
+            logger.info("Test message")
+
+            # Verify there's content in the file
+            with open(log_file, 'r') as f:
+                content = f.read()
+                assert len(content) > 0
         finally:
             # Restore original settings
             logger.handlers = original_handlers
@@ -103,6 +146,19 @@ def test_setup_logging_with_invalid_file():
 
         # Check that logger was set to INFO level
         assert logger.level == logging.INFO
+
+        # Verify that a handler was added (should be the stderr handler)
+        assert len(logger.handlers) > 0
+
+        # Check that at least one handler is a StreamHandler (stderr)
+        has_stream_handler = False
+        for handler in logger.handlers:
+            if isinstance(handler, logging.StreamHandler):
+                has_stream_handler = True
+                break
+        assert has_stream_handler, (
+            "No StreamHandler found when log file path is invalid"
+        )
     finally:
         # Restore original settings
         logger.handlers = original_handlers
