@@ -3,8 +3,8 @@ Additional tests for main module.
 """
 import os
 import tempfile
-from unittest import mock
 from time import perf_counter
+from unittest import mock
 
 from src.main import (
     _early_env_exits,
