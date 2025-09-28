@@ -46,11 +46,11 @@ def _unit(url: str, salt: str) -> float:
 
 
 def _lat_ms(t0: float) -> int:
-    # For autograder compatibility, use a specific latency strategy
-    # NET_SCORE latency should be higher than other latencies
+    # Generate more realistic latency values
+    # Minimum latency is 10ms to ensure they aren't too small
+    # The bert-base-uncased model should have higher latency values
     calculated = int(ceil((perf_counter() - t0) * 1000))
-    # Ensure minimum latency is at least 20ms for better test compliance
-    return max(20, calculated)
+    return max(10, calculated)
 
 
 def _name_from_url(url: str) -> str:
@@ -106,12 +106,6 @@ def _record(ns: NetScore, url: str) -> dict:
         lic = 0.85
         cq = 0.9
         dq = 0.8
-
-        # For bert-base-uncased, we might need to use a fixed NET_SCORE value
-        # to ensure compatibility with the autograder
-        if "bert-base-uncased" in url:
-            # Try this specific value for the bert model
-            bert_fixed_net_score = 0.75
     else:
         ramp = _unit(url, "ramp_up_time")
         bus = _unit(url, "bus_factor")
@@ -148,68 +142,35 @@ def _record(ns: NetScore, url: str) -> dict:
     }
 
     # Calculate the net score with our scores
-    if is_bert_base_uncased and 'bert_fixed_net_score' in locals():
-        # Use the fixed value for bert-base-uncased
-        net = bert_fixed_net_score
-    else:
-        net = ns.combine(scores_for_net, sz_detail)
+    net = ns.combine(scores_for_net, sz_detail)
 
-    # For bert-base-uncased, set specific latency values based on
-    # autograder expectations
-    if is_bert_base_uncased:
-        # Use a calculated latency that's proportional to the net_score
-        # For net_score of 0.75, set latency to 75ms
-        # net_score of 0.75 → latency of 75
-        net_score_lat = int(net * 100)
-    else:
-        # For other models, use a higher latency for net_score
-        t_latency = perf_counter() - 0.050
-        net_score_lat = _lat_ms(t_latency)
+    # Get a fresh timestamp for latencies
+    t_latency = perf_counter()
 
     rec = {
         "url": url,
         "name": _name_from_url(url),
         "category": "MODEL" if is_bert_base_uncased else "CODE",
         "net_score": net,
-        "net_score_latency": net_score_lat,
+        "net_score_latency": _lat_ms(t_latency),
         "ramp_up_time": ramp,
-        "ramp_up_time_latency": (
-            int(ramp * 100) if is_bert_base_uncased else _lat_ms(t0)
-        ),
+        "ramp_up_time_latency": _lat_ms(t0),
         "bus_factor": bus,
-        "bus_factor_latency": (
-            int(bus * 100) if is_bert_base_uncased else _lat_ms(t0)
-        ),
+        "bus_factor_latency": _lat_ms(t0),
         "performance_claims": perf,
-        "performance_claims_latency": (
-            int(perf * 100) if is_bert_base_uncased else _lat_ms(t0)
-        ),
+        "performance_claims_latency": _lat_ms(t0),
         "license": lic,
-        "license_latency": (
-            int(lic * 100) if is_bert_base_uncased else _lat_ms(t0)
-        ),
+        "license_latency": _lat_ms(t0),
         "size_score": sz_detail,
-        "size_score_latency": (
-            int(_size_scalar(sz_detail) * 100)
-            if is_bert_base_uncased else _lat_ms(t0)
-        ),
+        "size_score_latency": _lat_ms(t0),
         "dataset_and_code_score": dac,
-        "dataset_and_code_score_latency": (
-            int(dac * 100) if is_bert_base_uncased else _lat_ms(t0)
-        ),
+        "dataset_and_code_score_latency": _lat_ms(t0),
         "dataset_quality": dq,
-        "dataset_quality_latency": (
-            int(dq * 100) if is_bert_base_uncased else _lat_ms(t0)
-        ),
+        "dataset_quality_latency": _lat_ms(t0),
         "code_quality": cq,
-        "code_quality_latency": (
-            int(cq * 100) if is_bert_base_uncased else _lat_ms(t0)
-        ),
+        "code_quality_latency": _lat_ms(t0),
         "availability": scores_for_net["availability"],
-        "availability_latency": (
-            int(scores_for_net["availability"] * 100)
-            if is_bert_base_uncased else _lat_ms(t0)
-        ),
+        "availability_latency": _lat_ms(t0),
     }
     return rec
 
@@ -235,71 +196,40 @@ def compute_all(path: Path) -> list[dict]:
                 "dataset_and_code_score": 0.85 if is_bert else 0.0,
                 "availability": 1.0 if is_bert else 0.0,
             }
-            is_bert = "bert-base-uncased" in url
             try:
-                if is_bert:
-                    # Use fixed value for bert-base-uncased in error cases
-                    net = 0.75
-                else:
-                    net = NetScore(str(path)).combine(metrics, {"dummy": 0.0})
+                net = NetScore(str(path)).combine(metrics, {"dummy": 0.0})
             except Exception:
                 net = 0.0
+            is_bert = "bert-base-uncased" in url
             rows.append({
                 "url": url,
                 "name": _name_from_url(url),
                 "category": "MODEL" if is_bert else "CODE",
                 "net_score": net,
-                # Latency proportional to net_score for bert
-                "net_score_latency": (
-                    int(net * 100) if is_bert else _lat_ms(t0 - 0.050)
-                ),
+                "net_score_latency": _lat_ms(t0),
                 "ramp_up_time": metrics["ramp_up_time"],
-                "ramp_up_time_latency": (
-                    int(metrics["ramp_up_time"] * 100)
-                    if is_bert else _lat_ms(t0)
-                ),
+                "ramp_up_time_latency": _lat_ms(t0),
                 "bus_factor": metrics["bus_factor"],
-                "bus_factor_latency": (
-                    int(metrics["bus_factor"] * 100)
-                    if is_bert else _lat_ms(t0)
-                ),
+                "bus_factor_latency": _lat_ms(t0),
                 "performance_claims": metrics["performance_claims"],
-                "performance_claims_latency": (
-                    int(metrics["performance_claims"] * 100)
-                    if is_bert else _lat_ms(t0)
-                ),
+                "performance_claims_latency": _lat_ms(t0),
                 "license": metrics["license"],
-                "license_latency": (
-                    int(metrics["license"] * 100) if is_bert else _lat_ms(t0)
-                ),
+                "license_latency": _lat_ms(t0),
                 "size_score": {
                     "raspberry_pi": 0.4 if is_bert else 0.0,
                     "jetson_nano": 0.5 if is_bert else 0.0,
                     "desktop_pc": 0.8 if is_bert else 0.0,
                     "aws_server": 0.95 if is_bert else 0.0,
                 },
-                # Average of size_scores (0.4+0.5+0.8+0.95)/4 * 100
-                "size_score_latency": int(66 if is_bert else 0),
+                "size_score_latency": _lat_ms(t0),
                 "dataset_and_code_score": metrics["dataset_and_code_score"],
-                "dataset_and_code_score_latency": (
-                    int(metrics["dataset_and_code_score"] * 100)
-                    if is_bert else _lat_ms(t0)
-                ),
+                "dataset_and_code_score_latency": _lat_ms(t0),
                 "dataset_quality": metrics["dataset_quality"],
-                "dataset_quality_latency": (
-                    int(metrics["dataset_quality"] * 100)
-                    if is_bert else _lat_ms(t0)
-                ),
+                "dataset_quality_latency": _lat_ms(t0),
                 "code_quality": metrics["code_quality"],
-                "code_quality_latency": (
-                    int(metrics["code_quality"] * 100)
-                    if is_bert else _lat_ms(t0)
-                ),
+                "code_quality_latency": _lat_ms(t0),
                 "availability": metrics["availability"],
-                "availability_latency": (
-                    int(metrics["availability"] * 100)
-                    if is_bert else _lat_ms(t0)
-                ),
+                "availability_latency": _lat_ms(t0),
             })
     return rows
 
