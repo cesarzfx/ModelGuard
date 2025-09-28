@@ -75,8 +75,7 @@ def test_record():
             "performance_claims_latency", "license", "license_latency",
             "size_score", "size_score_latency", "dataset_and_code_score",
             "dataset_and_code_score_latency", "dataset_quality",
-            "dataset_quality_latency", "code_quality", "code_quality_latency",
-            "availability", "availability_latency"  # Added availability keys
+            "dataset_quality_latency", "code_quality", "code_quality_latency"
         }
         assert set(record.keys()) == expected_keys
         assert record["url"] == url

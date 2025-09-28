@@ -42,12 +42,7 @@ class NetScore:
             if name == "size":
                 val = size_val
             else:
-                key_name = name
-                # Map the metric names to match the keys in scores
-                if name == "ramp_up":
-                    key_name = "ramp_up_time"
-
-                val = scores.get(key_name, 0.0)
+                val = scores.get(name, 0.0)
             total += w * max(0.0, min(1.0, float(val)))
             wsum += w
         result = total / wsum if wsum > 0 else 0.0
