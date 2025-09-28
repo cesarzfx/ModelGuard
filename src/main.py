@@ -53,7 +53,7 @@ def _name_from_url(url: str) -> str:
     # Special case for huggingface model URLs
     if "huggingface.co" in url and "bert-base-uncased" in url:
         return "bert-base-uncased"
-    
+
     base = url.rstrip("/").split("/")[-1]
     return (base or "artifact").lower()
 
@@ -91,7 +91,7 @@ def _record(ns: NetScore, url: str) -> dict:
 
     # Check if this is a Bert Base Uncased model
     is_bert_base_uncased = "bert-base-uncased" in url
-    
+
     # Adjust metrics for Bert Base Uncased model
     if is_bert_base_uncased:
         ramp = 0.7  # Expected range for bert-base-uncased
@@ -107,7 +107,7 @@ def _record(ns: NetScore, url: str) -> dict:
         lic = _unit(url, "license")
         cq = _unit(url, "code_quality")
         dq = _unit(url, "dataset_quality")
-        
+
     dac = fmean([cq, dq])
 
     # Use specific size values for bert-base-uncased
