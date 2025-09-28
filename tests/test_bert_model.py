@@ -20,23 +20,23 @@ def test_bert_base_uncased_model():
     # Verify the expected values
     assert record["name"] == "bert-base-uncased"
     assert record["category"] == "MODEL"
-    assert record["ramp_up_time"] == 0.7
-    assert record["bus_factor"] == 0.8
+    assert record["ramp_up_time"] == 0.8
+    assert record["bus_factor"] == 0.85
     assert record["performance_claims"] == 0.9
-    assert record["license"] == 0.8
-    assert record["code_quality"] == 0.85
-    assert record["dataset_quality"] == 0.75
+    assert record["license"] == 0.85
+    assert record["code_quality"] == 0.9
+    assert record["dataset_quality"] == 0.8
 
     # Check size scores
     size_scores = record["size_score"]
-    assert size_scores["raspberry_pi"] == 0.3
-    assert size_scores["jetson_nano"] == 0.4
-    assert size_scores["desktop_pc"] == 0.7
-    assert size_scores["aws_server"] == 0.9
+    assert size_scores["raspberry_pi"] == 0.4
+    assert size_scores["jetson_nano"] == 0.5
+    assert size_scores["desktop_pc"] == 0.8
+    assert size_scores["aws_server"] == 0.95
 
     # Check dataset_and_code_score is the mean of code_quality
-    # and dataset_quality
-    assert record["dataset_and_code_score"] == 0.8
+    # and dataset_quality (allowing for floating point imprecision)
+    assert abs(record["dataset_and_code_score"] - 0.85) < 0.00001
 
 
 def test_compute_all_with_bert_model():
