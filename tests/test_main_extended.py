@@ -2,17 +2,18 @@
 Additional tests for main module.
 """
 import os
-import pytest
 import tempfile
 from pathlib import Path
 from unittest import mock
 
+import pytest
+
 from src.main import (
-    main,
     _early_env_exits,
     _lat_ms,
     _print_ndjson,
     compute_all,
+    main,
 )
 
 

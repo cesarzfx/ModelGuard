@@ -1,9 +1,10 @@
 """
 Tests for metrics modules.
 """
-import pytest
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
+import pytest
 
 from src.metrics.availability_metric import AvailabilityMetric
 from src.metrics.bus_factor_metric import BusFactorMetric

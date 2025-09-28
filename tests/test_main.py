@@ -9,12 +9,12 @@ import pytest
 
 from src.main import (
     _name_from_url,
-    _unit,
+    _record,
     _size_detail,
     _size_scalar,
-    _record,
-    iter_urls,
+    _unit,
     compute_all,
+    iter_urls,
 )
 
 
@@ -59,8 +59,9 @@ def test_size_scalar():
 
 def test_record():
     """Test the _record function generates expected keys."""
-    from src.metrics.net_score import NetScore
     import unittest.mock as mock
+
+    from src.metrics.net_score import NetScore
     
     url = "https://example.com"
     ns = NetScore(url)

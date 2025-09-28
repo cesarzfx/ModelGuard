@@ -1,15 +1,15 @@
 """
 Tests for the logging_utils module.
 """
+import logging
 import os
 import tempfile
-import logging
 from logging import handlers
 from pathlib import Path
 
 import pytest
 
-from src.logging_utils import setup_logging, _parse_level, _SILENT_SENTINEL
+from src.logging_utils import _SILENT_SENTINEL, _parse_level, setup_logging
 
 
 def test_parse_level_none():

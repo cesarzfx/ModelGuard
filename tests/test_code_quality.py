@@ -4,6 +4,7 @@ Tests for the code_quality_metric module.
 import os
 import tempfile
 from pathlib import Path
+
 import pytest
 
 from src.metrics.code_quality_metric import CodeQualityMetric

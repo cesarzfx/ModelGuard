@@ -1,11 +1,12 @@
 """
 Tests for the metrics module functionality and edge cases.
 """
-import pytest
 from pathlib import Path
 
-from src.metrics.metric import Metric
+import pytest
+
 from src.metrics.base_metric import BaseMetric
+from src.metrics.metric import Metric
 
 
 class TestBaseMetric(BaseMetric):
@@ -70,8 +71,9 @@ def test_metric_as_path():
 def test_early_env_exits():
     """Test the _early_env_exits function with environment variables."""
     import os
+
     from src.main import _early_env_exits
-    
+
     # Test with valid token
     os.environ["GITHUB_TOKEN"] = "valid_token"
     assert _early_env_exits() is False
