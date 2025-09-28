@@ -79,13 +79,13 @@ def test_setup_logging_level_1():
 
             # Check that log file was created
             assert log_file.exists()
-            
+
             # Check that logger was set to INFO level
             assert logger.level == logging.INFO
-            
+
             # Log a message to verify it gets written
             logger.info("Test info message")
-            
+
             # Verify the log file has content
             with open(log_file, 'r') as f:
                 content = f.read()
@@ -117,10 +117,10 @@ def test_setup_logging_with_valid_file():
 
             # Check that logger was set to INFO level
             assert logger.level == logging.INFO
-            
+
             # Log a message to ensure the file gets written to
             logger.info("Test message")
-            
+
             # Verify there's content in the file
             with open(log_file, 'r') as f:
                 content = f.read()
@@ -146,17 +146,19 @@ def test_setup_logging_with_invalid_file():
 
         # Check that logger was set to INFO level
         assert logger.level == logging.INFO
-        
+
         # Verify that a handler was added (should be the stderr handler)
         assert len(logger.handlers) > 0
-        
+
         # Check that at least one handler is a StreamHandler (stderr)
         has_stream_handler = False
         for handler in logger.handlers:
             if isinstance(handler, logging.StreamHandler):
                 has_stream_handler = True
                 break
-        assert has_stream_handler, "No StreamHandler found when log file path is invalid"
+        assert has_stream_handler, (
+            "No StreamHandler found when log file path is invalid"
+        )
     finally:
         # Restore original settings
         logger.handlers = original_handlers

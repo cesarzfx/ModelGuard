@@ -48,7 +48,7 @@ def setup_logging() -> None:
         )
         fh.setFormatter(fmt)
         logger.addHandler(fh)
-        
+
         # Test the file by writing a simple message to verify it's working
         if lvl == logging.INFO:
             logger.info("Log initialized with INFO level")

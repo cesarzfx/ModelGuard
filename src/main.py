@@ -94,7 +94,6 @@ def _record(ns: NetScore, url: str) -> dict:
     dac = fmean([cq, dq])
 
     sz_detail = _size_detail(url)
-    sz_scalar = _size_scalar(sz_detail)
 
     scores_for_net = {
         "ramp_up_time": ramp,
