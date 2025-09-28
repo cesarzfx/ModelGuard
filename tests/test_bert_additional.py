@@ -1,10 +1,8 @@
 """
 Tests for bert-base-uncased model URL formats.
 """
-import tempfile
-from pathlib import Path
 
-from src.main import _record, compute_all
+from src.main import _record
 from src.metrics.net_score import NetScore
 
 
@@ -18,11 +16,11 @@ def test_bert_base_uncased_additional_urls():
         "/path/to/bert-base-uncased",
         "http://some-url/bert-base-uncased/model",
     ]
-    
+
     for url in urls:
         ns = NetScore(url)
         record = _record(ns, url)
-        
+
         # Verify key properties for all URL formats
         assert record["name"] == "bert-base-uncased"
         assert record["category"] == "MODEL"
