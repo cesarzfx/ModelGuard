@@ -135,7 +135,6 @@ def _record(ns: NetScore, url: str) -> dict:
     rec = {
         "url": url,
         "name": _name_from_url(url),
-        # Set category to MODEL if the URL is for a model, otherwise CODE
         "category": "MODEL" if "bert-base-uncased"
         in url or "model" in url.lower() else "CODE",
         "net_score": net,
