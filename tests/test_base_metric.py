@@ -7,7 +7,7 @@ from typing import Any, List, Optional
 
 class TestBaseMetric:
     """An implementation of BaseMetric for testing."""
-    
+
     def _is_git_repo(self, path: Path) -> bool:
         return True
 

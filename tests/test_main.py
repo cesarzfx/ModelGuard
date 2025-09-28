@@ -1,11 +1,9 @@
 """
 Tests for the main module.
 """
-import json
+
 import tempfile
 from pathlib import Path
-
-import pytest
 
 from src.main import (
     _name_from_url,
@@ -47,10 +45,10 @@ def test_size_scalar():
     # Test normal case
     detail = {"a": 0.1, "b": 0.3, "c": 0.5}
     assert _size_scalar(detail) == 0.3  # Mean of values
-    
+
     # Test empty dict
     assert _size_scalar({}) == 0.0
-    
+
     # Test with values outside range
     detail = {"a": -0.5, "b": 1.5}
     scalar = _size_scalar(detail)
@@ -62,22 +60,22 @@ def test_record():
     import unittest.mock as mock
 
     from src.metrics.net_score import NetScore
-    
+
     url = "https://example.com"
     ns = NetScore(url)
-    
+
     # Mock NetScore.combine to avoid the actual implementation
     with mock.patch.object(ns, 'combine', return_value=0.5):
         record = _record(ns, url)
-        
+
         expected_keys = {
             "url", "name", "category", "net_score", "net_score_latency",
-            "ramp_up_time", "ramp_up_time_latency", "bus_factor", 
-            "bus_factor_latency", "performance_claims", "performance_claims_latency",
-            "license", "license_latency", "size_score", "size_score_latency",
-            "dataset_and_code_score", "dataset_and_code_score_latency",
-            "dataset_quality", "dataset_quality_latency",
-            "code_quality", "code_quality_latency"
+            "ramp_up_time", "ramp_up_time_latency", "bus_factor",
+            "bus_factor_latency", "performance_claims",
+            "performance_claims_latency", "license", "license_latency",
+            "size_score", "size_score_latency", "dataset_and_code_score",
+            "dataset_and_code_score_latency", "dataset_quality",
+            "dataset_quality_latency", "code_quality", "code_quality_latency"
         }
         assert set(record.keys()) == expected_keys
         assert record["url"] == url
@@ -93,9 +91,12 @@ def test_iter_urls():
         tmp.write("\n")  # Empty line
         tmp.write("https://example.com/repo2\n")
         tmp.flush()
-        
+
         urls = list(iter_urls(Path(tmp.name)))
-        assert urls == ["https://example.com/repo1", "https://example.com/repo2"]
+        assert urls == [
+            "https://example.com/repo1",
+            "https://example.com/repo2"
+        ]
 
 
 def test_compute_all():
@@ -104,10 +105,16 @@ def test_compute_all():
         tmp.write("https://example.com/repo1\n")
         tmp.write("https://example.com/repo2\n")
         tmp.flush()
-        
+
         # Mock _record to avoid actual implementation
         import unittest.mock as mock
-        with mock.patch('src.main._record', side_effect=lambda ns, url: {"url": url, "name": url.split("/")[-1]}):
+        with mock.patch(
+            'src.main._record',
+            side_effect=lambda ns, url: {
+                "url": url,
+                "name": url.split("/")[-1]
+            }
+        ):
             results = compute_all(Path(tmp.name))
             assert len(results) == 2
             assert results[0]["url"] == "https://example.com/repo1"

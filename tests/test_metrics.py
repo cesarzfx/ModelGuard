@@ -3,8 +3,6 @@ Tests for the metrics module functionality and edge cases.
 """
 from pathlib import Path
 
-import pytest
-
 from src.metrics.base_metric import BaseMetric
 from src.metrics.metric import Metric
 
@@ -17,7 +15,7 @@ class TestBaseMetric(BaseMetric):
 def test_base_metric_methods():
     """Test that base metric methods have expected return types."""
     metric = TestBaseMetric()
-    
+
     assert metric._is_git_repo(Path(".")) is False
     assert metric._git() is None
     assert metric._count_lines(Path(".")) == 0
@@ -33,9 +31,9 @@ def test_metric_stable_unit_score():
     """Test the stable unit score method in the Metric class."""
     class TestMetric(Metric):
         pass
-    
+
     metric = TestMetric()
-    
+
     # Test known metrics
     assert metric._stable_unit_score("url", "availability") == 0.2
     assert metric._stable_unit_score("url", "bus_factor") == 0.2
@@ -44,7 +42,7 @@ def test_metric_stable_unit_score():
     assert metric._stable_unit_score("url", "license") == 0.0
     assert metric._stable_unit_score("url", "performance_claims") == 0.0
     assert metric._stable_unit_score("url", "ramp_up") == 0.05
-    
+
     # Test unknown metric
     assert metric._stable_unit_score("url", "unknown_metric") == 0.0
 
@@ -53,12 +51,12 @@ def test_metric_as_path():
     """Test the _as_path method in the Metric class."""
     class TestMetric(Metric):
         pass
-    
+
     metric = TestMetric()
-    
+
     # Non-existent path
     assert metric._as_path("/path/that/does/not/exist") is None
-    
+
     # Existing path (current directory should exist)
     import os
     current_dir = os.getcwd()
@@ -77,10 +75,10 @@ def test_early_env_exits():
     # Test with valid token
     os.environ["GITHUB_TOKEN"] = "valid_token"
     assert _early_env_exits() is False
-    
+
     # Test with invalid token
     os.environ["GITHUB_TOKEN"] = "INVALID"
     assert _early_env_exits() is True
-    
+
     # Clean up
     os.environ.pop("GITHUB_TOKEN", None)

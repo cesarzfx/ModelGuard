@@ -4,10 +4,7 @@ Tests for the logging_utils module.
 import logging
 import os
 import tempfile
-from logging import handlers
 from pathlib import Path
-
-import pytest
 
 from src.logging_utils import _SILENT_SENTINEL, _parse_level, setup_logging
 
@@ -49,14 +46,14 @@ def test_setup_logging_silent():
         log_file = Path(tmp_dir) / "test.log"
         os.environ["LOG_LEVEL"] = "silent"
         os.environ["LOG_FILE"] = str(log_file)
-        
+
         # Save the original handlers to restore later
         logger = logging.getLogger()
         original_handlers = list(logger.handlers)
-        
+
         try:
             setup_logging()
-            
+
             # Check that file was created but is empty
             assert log_file.exists()
             assert log_file.stat().st_size == 0
@@ -71,18 +68,18 @@ def test_setup_logging_with_valid_file():
         log_file = Path(tmp_dir) / "test.log"
         os.environ["LOG_LEVEL"] = "info"
         os.environ["LOG_FILE"] = str(log_file)
-        
+
         # Save the original handlers to restore later
         logger = logging.getLogger()
         original_handlers = list(logger.handlers)
         original_level = logger.level
-        
+
         try:
             setup_logging()
-            
+
             # Check that log file was created
             assert log_file.exists()
-            
+
             # Check that logger was set to INFO level
             assert logger.level == logging.INFO
         finally:
@@ -95,15 +92,15 @@ def test_setup_logging_with_invalid_file():
     """Test setup_logging with an invalid log file path."""
     os.environ["LOG_LEVEL"] = "info"
     os.environ["LOG_FILE"] = "/path/that/cannot/exist/test.log"
-    
+
     # Save the original handlers to restore later
     logger = logging.getLogger()
     original_handlers = list(logger.handlers)
     original_level = logger.level
-    
+
     try:
         setup_logging()
-        
+
         # Check that logger was set to INFO level
         assert logger.level == logging.INFO
     finally:

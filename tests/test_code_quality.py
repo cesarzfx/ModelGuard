@@ -5,8 +5,6 @@ import os
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from src.metrics.code_quality_metric import CodeQualityMetric
 
 
@@ -33,20 +31,20 @@ def test_linter_configs():
     class TestCodeQualityMetric(CodeQualityMetric):
         def _as_path(self, path_or_url: str) -> Path:
             return Path(path_or_url)
-        
+
         def _glob(self, base, patterns):
             return []  # Return empty list for simplicity
-        
+
         def _clamp01(self, x: float) -> float:
             return max(0.0, min(1.0, x))
-    
+
     metric = TestCodeQualityMetric()
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create a linter config file
         path = Path(tmpdir)
         with open(path / ".flake8", "w") as f:
             f.write("[flake8]\nmax-line-length = 100\n")
-        
+
         result = metric.score(tmpdir)
         assert "code_quality" in result
 
@@ -56,23 +54,31 @@ def test_ci_detection():
     class TestCodeQualityMetric(CodeQualityMetric):
         def _as_path(self, path_or_url: str) -> Path:
             return Path(path_or_url)
-            
+
         def _glob(self, base, patterns):
             # Mock glob to find our CI file
             path = Path(base)
             return [path / ".github" / "workflows" / "ci.yml"]
-            
+
         def _clamp01(self, x: float) -> float:
             return max(0.0, min(1.0, x))
-    
+
     metric = TestCodeQualityMetric()
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create a CI workflow file
         path = Path(tmpdir)
         os.makedirs(path / ".github" / "workflows", exist_ok=True)
-        with open(path / ".github" / "workflows" / "ci.yml", "w") as f:
-            f.write("name: CI\non: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n")
-        
+        ci_file_path = path / ".github" / "workflows" / "ci.yml"
+        with open(ci_file_path, "w") as f:
+            ci_content = (
+                "name: CI\n"
+                "on: push\n"
+                "jobs:\n"
+                "  test:\n"
+                "    runs-on: ubuntu-latest\n"
+            )
+            f.write(ci_content)
+
         result = metric.score(tmpdir)
         assert "code_quality" in result
 
@@ -82,19 +88,19 @@ def test_tests_detection():
     class TestCodeQualityMetric(CodeQualityMetric):
         def _as_path(self, path_or_url: str) -> Path:
             return Path(path_or_url)
-            
+
         def _glob(self, base, patterns):
             return []
-            
+
         def _clamp01(self, x: float) -> float:
             return max(0.0, min(1.0, x))
-    
+
     metric = TestCodeQualityMetric()
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create a tests directory
         path = Path(tmpdir)
         os.makedirs(path / "tests", exist_ok=True)
-        
+
         result = metric.score(tmpdir)
         assert "code_quality" in result
 
@@ -104,19 +110,25 @@ def test_line_length_analysis():
     class TestCodeQualityMetric(CodeQualityMetric):
         def _as_path(self, path_or_url: str) -> Path:
             return Path(path_or_url)
-            
+
         def _glob(self, base, patterns):
             return []
-            
+
         def _clamp01(self, x: float) -> float:
             return max(0.0, min(1.0, x))
-    
+
     metric = TestCodeQualityMetric()
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create a Python file with short lines
         path = Path(tmpdir)
-        with open(path / "short_lines.py", "w") as f:
-            f.write("def hello():\n    return 'Hello World'\n\nprint(hello())\n")
-        
+        file_path = path / "short_lines.py"
+        with open(file_path, "w") as f:
+            code_content = (
+                "def hello():\n"
+                "    return 'Hello World'\n\n"
+                "print(hello())\n"
+            )
+            f.write(code_content)
+
         result = metric.score(tmpdir)
         assert "code_quality" in result
