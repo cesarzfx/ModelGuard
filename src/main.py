@@ -136,8 +136,8 @@ def _record(ns: NetScore, url: str) -> dict:
         "url": url,
         "name": _name_from_url(url),
         # Set category to MODEL if the URL is for a model, otherwise CODE
-        "category": "MODEL" 
-            if "bert-base-uncased" in url or "model" in url.lower() else "CODE",
+        "category": "MODEL" if "bert-base-uncased"
+        in url or "model" in url.lower() else "CODE",
         "net_score": net,
         "net_score_latency": net_score_latency,
         "ramp_up_time": ramp,
