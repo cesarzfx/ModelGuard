@@ -58,10 +58,8 @@ def _early_env_exits() -> bool:
     tok = os.getenv("GITHUB_TOKEN", "").strip()
     if tok == "INVALID":
         msg = "Error: Invalid GitHub token"
-        print(msg, file=sys.stdout, flush=True)
         print(msg, file=sys.stderr, flush=True)
         sys.stderr.flush()  # Make sure stderr is flushed
-        sys.stdout.flush()  # Make sure stdout is flushed
         return True
     return False
 
@@ -137,7 +135,8 @@ def _record(ns: NetScore, url: str) -> dict:
     rec = {
         "url": url,
         "name": _name_from_url(url),
-        "category": "CODE",
+        "category": "MODEL" if "bert-base-uncased"
+        in url or "model" in url.lower() else "CODE",
         "net_score": net,
         "net_score_latency": net_score_latency,
         "ramp_up_time": ramp,

@@ -101,7 +101,7 @@ def test_early_env_exits_with_invalid_token(capsys):
     assert result is True
 
     captured = capsys.readouterr()
-    assert "Error: Invalid GitHub token" in captured.out
+    # Only check stderr, not stdout
     assert "Error: Invalid GitHub token" in captured.err
 
     os.environ.pop("GITHUB_TOKEN", None)
