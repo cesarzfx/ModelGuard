@@ -5,6 +5,10 @@ import errno
 import json
 import os
 import stat
+<<<<<<< HEAD
+=======
+import errno
+>>>>>>> d260f364d6e390b7c886a905f3e0c6f06df26330
 import sys
 from math import ceil
 from pathlib import Path
