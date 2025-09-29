@@ -142,7 +142,6 @@ def test_dataset_quality_metric_path():
 
 
 def test_dataset_quality_no_files(tmp_path):
-    import os
 
     from src.metrics.dataset_quality_metric import DatasetQualityMetric
     metric = DatasetQualityMetric()
