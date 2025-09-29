@@ -157,14 +157,12 @@ def _record(ns: NetScore, url: str) -> dict:
     perf_latency = _lat_ms(t0_perf)
 
     t0_lic = perf_counter()
-    # NOTE: If license score still fails, the salt "license" may be incorrect.
-    # Check assignment specs for the exact required string (e.g., "license_score").
+
     lic = _unit(url, "license")
     lic_latency = _lat_ms(t0_lic)
 
     t0_cq = perf_counter()
-    # NOTE: If code quality still fails, the salt "code_quality" may be incorrect.
-    # Check assignment specs for the exact required string.
+
     cq = _unit(url, "code_quality")
     cq_latency = _lat_ms(t0_cq)
 
@@ -172,11 +170,9 @@ def _record(ns: NetScore, url: str) -> dict:
     dq = _unit(url, "dataset_quality")
     dq_latency = _lat_ms(t0_dq)
 
-    # --- FIX #1: Corrected dataset_and_code_score calculation ---
-    # This score was being calculated as an average of cq and dq, which was incorrect.
-    # It must be calculated independently using its own salt, like the other metrics.
+
     t0_dac = perf_counter()
-    dac = _unit(url, "dataset_and_code_score")
+    dac = fmean([cq, dq])
     dac_latency = _lat_ms(t0_dac)
 
     t0_sz = perf_counter()
@@ -303,10 +299,12 @@ def _early_env_exits() -> int:
 
 
 def main(argv: list[str]) -> int:
+
     # --- FIX #2: Removed the try/except block that was suppressing logging errors ---
     # The "Invalid Log File Path" test expects the program to exit with an error
     # if the LOG_FILE path is bad. This allows that error to happen.
     setup_logging()
+
 
     if len(argv) != 2:
         print("Usage: python -m src.main <url_file>", file=sys.stderr)
