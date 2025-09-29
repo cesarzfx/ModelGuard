@@ -1,13 +1,35 @@
+# src/main.py
 from __future__ import annotations
 
 import sys
+from urllib.parse import urlparse  # ← add this
 
 from src.logging_utils import setup_logging
 
 
-def _early_env_exits() -> None:
-    # Make sure logging is configured; will exit(2) on bad LOG_FILE
-    setup_logging()
+def _name_from_url(url: str) -> str:
+    """
+    Heuristically extract a model/package name from a URL.
+
+    Examples:
+      https://huggingface.co/bert-base-uncased    -> "bert-base-uncased"
+      https://huggingface.co/google/t5-small      -> "t5-small"
+      https://github.com/org/repo                 -> "repo"
+      https://pypi.org/project/black/             -> "black"
+    """
+    try:
+        u = urlparse(url)
+        path = (u.path or "").strip("/")
+        if not path:
+            return ""
+        parts = [p for p in path.split("/") if p]
+        name = parts[-1]
+        if name.endswith(".git"):
+            name = name[:-4]
+        return name.lower()
+    except Exception:
+        # Very defensive fallback
+        return url.rstrip("/").split("/")[-1].lower()
 
 
 def main(argv: list[str] | None = None) -> int:
