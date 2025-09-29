@@ -14,19 +14,17 @@ def main(argv: list[str] | None = None) -> int:
     """CLI entrypoint. Return 0 on success; nonzero on error."""
     argv = list(sys.argv[1:] if argv is None else argv)
 
-    # lightweight init path used by tests/CI
     if "--just-init" in argv:
         try:
             _early_env_exits()
         except SystemExit as e:
-            # mypy-safe normalization of exit code
             code = e.code if isinstance(e.code, int) else 1
             return code
         return 0
 
     _early_env_exits()
-
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())
