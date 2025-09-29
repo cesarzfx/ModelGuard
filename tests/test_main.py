@@ -1,10 +1,6 @@
-"""
-Tests for the main module, combining unit tests and integration tests
-to ensure full coverage of command-line behavior.
-"""
+import json
 import subprocess
 import sys
-import json
 from pathlib import Path
 
 import pytest
@@ -165,4 +161,3 @@ def test_iter_urls(tmp_path):
     
     urls = list(iter_urls(url_file))
     assert urls == ["https://a.com", "https://b.com"]
-
