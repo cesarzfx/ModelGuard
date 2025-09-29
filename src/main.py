@@ -49,14 +49,26 @@ def iter_urls(path: Path):
             FILE_SHARE_DELETE = 0x00000004
             OPEN_EXISTING = 3
             CreateFileW = ctypes.windll.kernel32.CreateFileW
-            CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
-                                    wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD,
-                                    wintypes.HANDLE]
+            CreateFileW.argtypes = [
+                wintypes.LPCWSTR,
+                wintypes.DWORD,
+                wintypes.DWORD,
+                wintypes.LPVOID,
+                wintypes.DWORD,
+                wintypes.DWORD,
+                wintypes.HANDLE,
+            ]
             CreateFileW.restype = wintypes.HANDLE
 
-            handle = CreateFileW(str(path), GENERIC_READ,
-                                 FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                                 None, OPEN_EXISTING, 0, None)
+            handle = CreateFileW(
+                str(path),
+                GENERIC_READ,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                None,
+                OPEN_EXISTING,
+                0,
+                None,
+            )
             INVALID_HANDLE = wintypes.HANDLE(-1).value
             if handle == INVALID_HANDLE:
                 raise
@@ -205,7 +217,8 @@ def compute_all(path: Path) -> list[dict]:
 
 def _print_ndjson(rows: list[dict]) -> None:
     for row in rows:
-        print(json.dumps(row, separators=(",", ":")))
+        seps = (",", ":")
+        print(json.dumps(row, separators=seps))
 
 
 def main(argv: list[str]) -> int:
@@ -224,7 +237,8 @@ def main(argv: list[str]) -> int:
 
     path = Path(argv[1]).resolve()
     if not path.exists():
-        print(f"Error: URL file not found: {path}", file=sys.stderr)
+        msg = "Error: URL file not found: " + str(path)
+        print(msg, file=sys.stderr)
         return 2
 
     try:
