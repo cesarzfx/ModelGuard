@@ -44,14 +44,20 @@ def _validate_log_path(p: Path) -> Path:
             pass
         test.unlink(missing_ok=True)
     except Exception as exc:  # noqa: BLE001
-        _fail_log_path(f"parent not writable: {parent} ({exc.__class__.__name__})")
+        _fail_log_path(
+            f"parent not writable: {parent} "
+            f"({exc.__class__.__name__})"
+        )
 
     # File must be appendable/creatable
     try:
         with p.open("a", encoding="utf-8"):
             pass
     except Exception as exc:  # noqa: BLE001
-        _fail_log_path(f"cannot open for append: {p} ({exc.__class__.__name__})")
+        _fail_log_path(
+            f"cannot open for append: {p} "
+            f"({exc.__class__.__name__})"
+        )
 
     return p
 
