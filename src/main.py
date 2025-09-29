@@ -223,7 +223,7 @@ def _print_ndjson(rows: list[dict]) -> None:
 
 def main(argv: list[str]) -> int:
     if _early_env_exits():
-        # Non-zero exit code to indicate error when early environment checks fail
+        # Return 2 when early environment checks fail
         return 2
 
     try:
