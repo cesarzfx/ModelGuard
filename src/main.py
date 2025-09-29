@@ -12,8 +12,11 @@ from time import perf_counter
 try:
     from .logging_utils import setup_logging
 except Exception:  # pragma: no cover
-    def setup_logging() -> None:
-        return
+    import logging as _logging
+
+    def setup_logging() -> _logging.Logger:
+        # Fallback stub that matches the real signature
+        return _logging.getLogger()
 
 try:
     from .metrics.net_score import NetScore
@@ -48,7 +51,10 @@ def iter_urls(path: Path):
             FILE_SHARE_WRITE = 0x00000002
             FILE_SHARE_DELETE = 0x00000004
             OPEN_EXISTING = 3
-            CreateFileW = ctypes.windll.kernel32.CreateFileW
+            windll = getattr(ctypes, "windll", None)
+            if windll is None:
+                raise
+            CreateFileW = windll.kernel32.CreateFileW
             CreateFileW.argtypes = [
                 wintypes.LPCWSTR,
                 wintypes.DWORD,
