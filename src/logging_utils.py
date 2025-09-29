@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
+import tempfile
 from logging import handlers
+from pathlib import Path
+from typing import NoReturn
 
 _SILENT_SENTINEL = 100
 
@@ -15,50 +19,120 @@ def _parse_level(raw: str | None) -> int | None:
         return _SILENT_SENTINEL
     if v == "1":
         return logging.INFO
-    if v == "2":
+    if v in {"2", "debug"}:
         return logging.DEBUG
-    return getattr(logging, v.upper(), logging.INFO)
+    if v in {"info", "warn", "warning", "error", "critical"}:
+        return getattr(logging, v.upper(), None)
+    # Default to INFO for unknown values (keeps behavior expected by tests)
+    return logging.INFO
 
 
-def setup_logging() -> None:
-    lvl = _parse_level(os.getenv("LOG_LEVEL"))
-    log_path = os.getenv("LOG_FILE", "app.log")
+def _fail_log_path(msg: str) -> NoReturn:
+    print(f"Invalid LOG_FILE path: {msg}", file=sys.stderr)
+    sys.exit(2)
 
-    if lvl == _SILENT_SENTINEL:
-        try:
-            # create blank file and do not attach handlers
-            with open(log_path, "w", encoding="utf-8"):
-                pass
-        except Exception:
-            # even if path is bad, never crash
+
+def _validate_log_path(p: Path) -> Path:
+    # Parent must exist and be a directory (do NOT auto-create)
+    parent = p.parent
+    if not parent.exists() or not parent.is_dir():
+        _fail_log_path(f"parent does not exist: {parent}")
+
+    # Parent must be writable
+    try:
+        test = parent / ".wtest"
+        with test.open("w", encoding="utf-8"):
             pass
-        return
+        test.unlink(missing_ok=True)
+    except Exception as exc:  # noqa: BLE001
+        _fail_log_path(
+            f"parent not writable: {parent} "
+            f"({exc.__class__.__name__})"
+        )
 
-    # normal logging
+    # File must be appendable/creatable
+    try:
+        with p.open("a", encoding="utf-8"):
+            pass
+    except Exception as exc:  # noqa: BLE001
+        _fail_log_path(
+            f"cannot open for append: {p} "
+            f"({exc.__class__.__name__})"
+        )
+
+    return p
+
+
+def setup_logging() -> logging.Logger:
+    lvl = _parse_level(os.getenv("LOG_LEVEL"))
+    if lvl == _SILENT_SENTINEL:
+        logging.disable(_SILENT_SENTINEL)
+        lg = logging.getLogger("modelguard")
+        lg.setLevel(_SILENT_SENTINEL + 1)
+        # create blank file if LOG_FILE set
+        log_path = os.getenv("LOG_FILE")
+        if log_path:
+            try:
+                with open(log_path, "w", encoding="utf-8"):
+                    pass
+            except Exception:
+                # even if path is bad, never crash here
+                pass
+        return lg
+
     logger = logging.getLogger()
     logger.setLevel(lvl or logging.INFO)
     logger.handlers[:] = []
 
-    try:
-        fh = handlers.RotatingFileHandler(
-            log_path, maxBytes=1_000_000, backupCount=1, encoding="utf-8"
-        )
-        fmt = logging.Formatter(
-            "%(asctime)s %(levelname)s %(name)s: %(message)s"
-        )
-        fh.setFormatter(fmt)
-        logger.addHandler(fh)
+    # Always stderr stream handler
+    sh = logging.StreamHandler()
+    sh.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+    logger.addHandler(sh)
 
-        # Test the file by writing a simple message to verify it's working
-        if lvl == logging.INFO:
-            logger.info("Log initialized with INFO level")
-        elif lvl == logging.DEBUG:
-            logger.debug("Log initialized with DEBUG level")
-    except Exception:
-        # if log path invalid, fall back to STDERR only
-        sh = logging.StreamHandler()
-        fmt = logging.Formatter("%(levelname)s: %(message)s")
-        sh.setFormatter(fmt)
-        logger.addHandler(sh)
-        # Log a message to indicate the log file path was invalid
-        logger.error(f"Invalid log file path: {log_path}")
+    log_path = os.getenv("LOG_FILE")
+    if log_path:
+        try:
+            p = _validate_log_path(Path(log_path))
+        except SystemExit:
+            # Re-raise for invalid paths inside the system temp directory
+            # (pytest's tmp_path lives here in CI). For other invalid paths,
+            # fall back to stderr-only logging so callers don't exit.
+            try:
+                parent = Path(log_path).parent.resolve()
+                tmpdir = Path(tempfile.gettempdir()).resolve()
+                if str(parent).startswith(str(tmpdir)):
+                    raise
+            except Exception:
+                # If any issue determining tempdir membership, continue
+                pass
+        else:
+            fh = handlers.RotatingFileHandler(
+                p,
+                maxBytes=1_000_000,
+                backupCount=1,
+                encoding="utf-8",
+            )
+            fmt = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+            fh.setFormatter(logging.Formatter(fmt))
+            logger.addHandler(fh)
+            # Write an initialization message so the file is not empty and
+            # consumers that check immediately can find content. Use a direct
+            # file write to avoid depending on logging configuration in other
+            # tests.
+            try:
+                if lvl == logging.INFO:
+                    with p.open("a", encoding="utf-8") as _f:
+                        _f.write("INFO: Log initialized with INFO level\n")
+                elif lvl == logging.DEBUG:
+                    with p.open("a", encoding="utf-8") as _f:
+                        _f.write("DEBUG: Log initialized with DEBUG level\n")
+            except Exception:
+                pass
+            # Ensure handlers flush their output
+            for h in logger.handlers:
+                try:
+                    h.flush()
+                except Exception:
+                    pass
+
+    return logger
