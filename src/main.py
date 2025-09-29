@@ -292,7 +292,10 @@ def main(argv: list[str]) -> int:
     try:
         # First, a best-effort os.access check
         if not os.access(path, os.R_OK):
-            print("Error: Permission denied when opening URL file", file=sys.stderr)
+            print(
+                "Error: Permission denied when opening URL file",
+                file=sys.stderr,
+            )
             return 2
         # Additionally, check POSIX permission bits (covers chmod 0 cases)
         try:
@@ -300,11 +303,17 @@ def main(argv: list[str]) -> int:
             readable_bits = stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
             # If no read bits are set for any user, treat as permission denied
             if not (mode & readable_bits):
-                print("Error: Permission denied when opening URL file", file=sys.stderr)
+                print(
+                    "Error: Permission denied when opening URL file",
+                    file=sys.stderr,
+                )
                 return 2
             # Additionally, if all permission bits are zero (chmod 0), fail
             if (mode & 0o777) == 0:
-                print("Error: Permission denied when opening URL file", file=sys.stderr)
+                print(
+                    "Error: Permission denied when opening URL file",
+                    file=sys.stderr,
+                )
                 return 2
         except Exception:
             # If stat fails, ignore and proceed
@@ -314,7 +323,10 @@ def main(argv: list[str]) -> int:
             with path.open("r", encoding="utf-8"):
                 pass
         except PermissionError:
-            print("Error: Permission denied when opening URL file", file=sys.stderr)
+            print(
+                "Error: Permission denied when opening URL file",
+                file=sys.stderr,
+            )
             return 2
         except Exception:
             # On Windows, os.open may reveal access denied even when open() succeeds
@@ -324,7 +336,10 @@ def main(argv: list[str]) -> int:
                     os.close(fd)
                 except OSError as e:
                     if e.errno == errno.EACCES:
-                        print("Error: Permission denied when opening URL file", file=sys.stderr)
+                        print(
+                            "Error: Permission denied when opening URL file",
+                            file=sys.stderr,
+                        )
                         return 2
                     # otherwise ignore
                 except Exception:
