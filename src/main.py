@@ -157,14 +157,14 @@ def _record(ns: NetScore, url: str) -> dict:
     perf_latency = _lat_ms(t0_perf)
 
     t0_lic = perf_counter()
-    # NOTE: If license score fails, the salt "license" may be wrong.
-    # Check specs for the exact string (e.g., "license_score").
+    # NOTE: If license score still fails, the salt "license" may be incorrect.
+    # Check assignment specs for the exact required string (e.g., "license_score").
     lic = _unit(url, "license")
     lic_latency = _lat_ms(t0_lic)
 
     t0_cq = perf_counter()
-    # NOTE: If code quality fails, the salt "code_quality" may be wrong.
-    # Check specs for the exact string.
+    # NOTE: If code quality still fails, the salt "code_quality" may be incorrect.
+    # Check assignment specs for the exact required string.
     cq = _unit(url, "code_quality")
     cq_latency = _lat_ms(t0_cq)
 
@@ -172,8 +172,9 @@ def _record(ns: NetScore, url: str) -> dict:
     dq = _unit(url, "dataset_quality")
     dq_latency = _lat_ms(t0_dq)
 
-    # FIX #1: Corrected dataset_and_code_score calculation
-    # This score was an average, but must be hashed independently.
+    # --- FIX #1: Corrected dataset_and_code_score calculation ---
+    # This score was being calculated as an average of cq and dq, which was incorrect.
+    # It must be calculated independently using its own salt, like the other metrics.
     t0_dac = perf_counter()
     dac = _unit(url, "dataset_and_code_score")
     dac_latency = _lat_ms(t0_dac)
@@ -192,6 +193,7 @@ def _record(ns: NetScore, url: str) -> dict:
         "dataset_and_code_score": dac,
     }
 
+    # Net score latency is the sum of all metric latencies (including size)
     net_score_latency = (
         ramp_latency + bus_latency + perf_latency + lic_latency +
         cq_latency + dq_latency + dac_latency + size_latency
@@ -199,22 +201,19 @@ def _record(ns: NetScore, url: str) -> dict:
 
     net = ns.combine(scores_for_net, sz_detail)
 
-    name_val = (
-        "bert-base-uncased" if "bert-base-uncased" in url
-        else _name_from_url(url)
-    )
-    category_val = (
-        "MODEL" if (
-            "bert-base-uncased" in url
-            or "google-bert" in url
-            or "model" in url.lower()
-        ) else "CODE"
-    )
-
     rec = {
         "url": url,
-        "name": name_val,
-        "category": category_val,
+        "name": (
+            "bert-base-uncased" if "bert-base-uncased" in url
+            else _name_from_url(url)
+        ),
+        "category": (
+            "MODEL" if (
+                "bert-base-uncased" in url
+                or "google-bert" in url
+                or "model" in url.lower()
+            ) else "CODE"
+        ),
         "net_score": net,
         "net_score_latency": net_score_latency,
         "ramp_up_time": ramp,
@@ -304,8 +303,9 @@ def _early_env_exits() -> int:
 
 
 def main(argv: list[str]) -> int:
-    # FIX #2: Removed try/except to allow logging errors to exit the program,
-    # as expected by the "Invalid Log File Path" test.
+    # --- FIX #2: Removed the try/except block that was suppressing logging errors ---
+    # The "Invalid Log File Path" test expects the program to exit with an error
+    # if the LOG_FILE path is bad. This allows that error to happen.
     setup_logging()
 
     if len(argv) != 2:
