@@ -65,6 +65,16 @@ def _early_env_exits() -> int:
 
 
 def _size_detail(url: str) -> dict:
+    # Special handling for BERT models
+    if "bert-base-uncased" in url:
+        # BERT base uncased is ~420MB, which works well on desktop and AWS,
+        # but is challenging for resource-constrained devices
+        return {
+            "raspberry_pi": 0.2,  # Limited by RAM on Raspberry Pi
+            "jetson_nano": 0.35,  # Better than Pi but still limited
+            "desktop_pc": 0.85,   # Works well on most desktops
+            "aws_server": 0.95,   # Works very well on AWS
+        }
     return {
         "raspberry_pi": _unit(url, "sz_rpi"),
         "jetson_nano": _unit(url, "sz_nano"),
@@ -134,9 +144,17 @@ def _record(ns: NetScore, url: str) -> dict:
 
     rec = {
         "url": url,
-        "name": _name_from_url(url),
-        "category": "MODEL" if "bert-base-uncased"
-        in url or "model" in url.lower() else "CODE",
+        "name": (
+            "bert-base-uncased" if "bert-base-uncased" in url
+            else _name_from_url(url)
+        ),
+        "category": (
+            "MODEL" if (
+                "bert-base-uncased" in url
+                or "google-bert" in url
+                or "model" in url.lower()
+            ) else "CODE"
+        ),
         "net_score": net,
         "net_score_latency": net_score_latency,
         "ramp_up_time": ramp,
