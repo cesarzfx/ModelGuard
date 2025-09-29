@@ -1,8 +1,7 @@
-# ... imports ...
-# at top of src/main.py
 from __future__ import annotations
+
 import sys
-# ... your other imports ...
+
 from src.logging_utils import setup_logging
 
 
