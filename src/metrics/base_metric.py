@@ -28,12 +28,19 @@ class BaseMetric:
     def _read_text(self, path: Path) -> str:
         return ""
 
-    def _glob(self, *args: Any, **kwargs: Any) -> List[Path]:
-        """Glob files; flexible signature so mypy accepts
-        different call styles."""
-        return []
+    def _glob(self, base: Path, patterns: List[str]) -> List[Path]:
+        files = []
+        for pattern in patterns:
+            files.extend(base.glob(pattern))
+        return list(files)
 
     def _as_path(self, path_or_url: str) -> Optional[Path]:
+        if (path_or_url.startswith("http://")
+                or path_or_url.startswith("https://")):
+            return None
+        p = Path(path_or_url)
+        if p.exists():
+            return p
         return None
 
     def _stable_unit_score(self, key: str, salt: str) -> float:

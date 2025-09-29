@@ -6,12 +6,7 @@ import tempfile
 from time import perf_counter
 from unittest import mock
 
-from src.main import (
-    _early_env_exits,
-    _lat_ms,
-    _print_ndjson,
-    main,
-)
+from src.main import _early_env_exits, _lat_ms, _print_ndjson, main
 
 
 def test_lat_ms():
@@ -35,19 +30,30 @@ def test_print_ndjson(capsys):
     assert '{"name":"test2","value":2}' in captured.out
 
 
-def test_main_invalid_args():
+def test_print_ndjson_empty_list(capsys):
+    """Test _print_ndjson with an empty list."""
+    _print_ndjson([])
+    captured = capsys.readouterr()
+    assert captured.out == ""
+
+
+def test_main_invalid_args(monkeypatch):
     """Test main function with invalid arguments."""
+    # Patch GITHUB_TOKEN so token check does not
+    # interfere with argument/file checks
+    monkeypatch.setenv("GITHUB_TOKEN", "dummy_token")
+
     # Test with no arguments
     assert main([]) == 2
 
     # Test with non-existent file
-    with tempfile.NamedTemporaryFile() as tmp:
-        non_existent = tmp.name
-    assert main(["program", non_existent]) == 2
+    assert main(["program", "/tmp/this_file_should_not_exist_123456789"]) == 2
 
 
-def test_main_with_valid_file():
+def test_main_with_valid_file(monkeypatch):
     """Test main function with a valid file."""
+    # Patch GITHUB_TOKEN so token check does not interfere
+    monkeypatch.setenv("GITHUB_TOKEN", "dummy_token")
     # Create a temporary file with URLs
     with tempfile.NamedTemporaryFile(mode="w+", delete=False) as tmp:
         tmp.write("https://example.com\n")
@@ -65,6 +71,73 @@ def test_main_with_valid_file():
 
     # Clean up
     os.unlink(tmp_path)
+
+
+def test_main_with_empty_file(monkeypatch, capsys):
+    """Test main with an empty file."""
+    monkeypatch.setenv("GITHUB_TOKEN", "dummy_token")
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp:
+        tmp_path = tmp.name
+    try:
+        result = main(["program", tmp_path])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert captured.out.strip() == ""
+    finally:
+        os.unlink(tmp_path)
+
+
+def test_main_with_comments_only_file(monkeypatch, capsys):
+    """Test main with a file containing only comments and blank lines."""
+    monkeypatch.setenv("GITHUB_TOKEN", "dummy_token")
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp:
+        tmp.write("# comment\n\n# another comment\n\n")
+        tmp.flush()
+        tmp_path = tmp.name
+    try:
+        result = main(["program", tmp_path])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert captured.out.strip() == ""
+    finally:
+        os.unlink(tmp_path)
+
+
+def test_lat_ms_zero_and_negative():
+    """Test _lat_ms with zero and negative time differences."""
+    now = perf_counter()
+    assert _lat_ms(now) == 1  # zero difference
+    assert _lat_ms(now + 1) == 1  # negative difference (should clamp to 1)
+
+
+def test_print_ndjson_non_serializable():
+    """Test _print_ndjson with a non-serializable object."""
+    class NonSerializable:
+        pass
+    try:
+        _print_ndjson([NonSerializable()])
+    except TypeError:
+        pass
+    else:
+        assert False, "TypeError not raised for non-serializable object"
+
+
+def test_main_file_permission_error(monkeypatch, capsys):
+    """Test main with a file that cannot be read (permission denied)."""
+    monkeypatch.setenv("GITHUB_TOKEN", "dummy_token")
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        tmp_path = tmp.name
+    os.chmod(tmp_path, 0)  # Remove all permissions
+    try:
+        result = main(["program", tmp_path])
+        assert result in (1, 2)  # Depending on where the error is caught
+        captured = capsys.readouterr()
+        assert ("Error" in captured.err or
+                "Permission" in captured.err
+                or "denied" in captured.err)
+    finally:
+        os.chmod(tmp_path, 0o600)
+        os.unlink(tmp_path)
 
 
 def test_main_with_exception():
@@ -87,16 +160,24 @@ def test_main_with_exception():
     os.unlink(tmp_path)
 
 
-def test_early_env_exits_with_valid_token():
+def test_early_env_exits_with_valid_token(monkeypatch):
     """Test _early_env_exits with a valid GitHub token."""
-    os.environ["GITHUB_TOKEN"] = "valid_token"
+    monkeypatch.setenv("GITHUB_TOKEN", "valid_token")
     assert _early_env_exits() == 0
-    os.environ.pop("GITHUB_TOKEN", None)
+    # No need to pop the token, monkeypatch handles it
 
 
-def test_early_env_exits_with_invalid_token(capsys):
+def test_early_env_exits_with_invalid_token(monkeypatch, capsys):
     """Test _early_env_exits with an invalid GitHub token."""
-    os.environ["GITHUB_TOKEN"] = "INVALID"
+    monkeypatch.setenv("GITHUB_TOKEN", "INVALID")
+    monkeypatch.setenv("FORCE_GITHUB_TOKEN_VALIDATION", "1")
+
+    # Mock requests.get to simulate invalid token response
+    import requests
+
+    class MockResp:
+        status_code = 401
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: MockResp())
     result = _early_env_exits()
     assert result == 1
 
@@ -104,4 +185,14 @@ def test_early_env_exits_with_invalid_token(capsys):
     # Only check stderr, not stdout
     assert "Error: Invalid GitHub token" in captured.err
 
-    os.environ.pop("GITHUB_TOKEN", None)
+    # No need to pop the token, monkeypatch handles it
+
+
+def test_early_env_exits_with_missing_token(monkeypatch, capsys):
+    """Test _early_env_exits when GITHUB_TOKEN is missing."""
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.setenv("FORCE_GITHUB_TOKEN_VALIDATION", "1")
+    result = _early_env_exits()
+    assert result == 1
+    captured = capsys.readouterr()
+    assert "Missing GITHUB_TOKEN environment variable" in captured.err

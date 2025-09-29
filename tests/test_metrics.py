@@ -22,7 +22,7 @@ def test_base_metric_methods():
     assert metric._saturating_scale(0.5, knee=0.5, max_x=1.0) == 0.0
     assert metric._clamp01(1.5) == 0.0
     assert metric._read_text(Path(".")) == ""
-    assert metric._glob() == []
+    assert metric._glob(Path("."), []) == []
     assert metric._as_path("nonexistent") is None
     assert 0.0 <= metric._stable_unit_score("key", "salt") <= 1.0
 
@@ -70,15 +70,29 @@ def test_early_env_exits():
     """Test the _early_env_exits function with environment variables."""
     import os
 
+    import requests
+
     from src.main import _early_env_exits
 
-    # Test with valid token
+    # Set FORCE_GITHUB_TOKEN_VALIDATION to force real validation
+    os.environ["FORCE_GITHUB_TOKEN_VALIDATION"] = "1"
+
+    # Mock requests.get to simulate valid token response
+    class MockRespValid:
+        status_code = 200
+    requests_get_orig = requests.get
+    requests.get = lambda *a, **kw: MockRespValid()
     os.environ["GITHUB_TOKEN"] = "valid_token"
     assert _early_env_exits() == 0
 
-    # Test with invalid token
+    # Mock requests.get to simulate invalid token response
+    class MockRespInvalid:
+        status_code = 401
+    requests.get = lambda *a, **kw: MockRespInvalid()
     os.environ["GITHUB_TOKEN"] = "INVALID"
     assert _early_env_exits() == 1
 
     # Clean up
     os.environ.pop("GITHUB_TOKEN", None)
+    os.environ.pop("FORCE_GITHUB_TOKEN_VALIDATION", None)
+    requests.get = requests_get_orig
