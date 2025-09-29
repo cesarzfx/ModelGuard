@@ -3,6 +3,14 @@ flake8
 isort
 
 # Testing
+
+# Testing
+
+# Type Checking
+mypy
+
+# HTTP requests
+requests
 pytest
 pytest-cov
 
