@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import logging
-from logging import handlers
-
 import os
 import sys
 import tempfile
+from logging import handlers
 from pathlib import Path
 from typing import NoReturn
-
 
 _SILENT_SENTINEL = 100
 
