@@ -329,7 +329,8 @@ def main(argv: list[str]) -> int:
             )
             return 2
         except Exception:
-            # On Windows, os.open may reveal access denied even when open() succeeds
+            # On Windows, os.open may reveal access denied
+            # even when open() succeeds
             if os.name == "nt":
                 try:
                     fd = os.open(str(path), os.O_RDONLY)
