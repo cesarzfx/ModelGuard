@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import errno
 import json
 import os
+import stat
 import sys
 from math import ceil
 from pathlib import Path
@@ -115,17 +117,54 @@ def _name_from_url(url: str) -> str:
     return (base or "artifact").lower()
 
 
-def _early_env_exits() -> bool:
+def _early_env_exits() -> int:
     """
-    Early exit if token looks invalid. Print to stdout and stderr.
+    Early environment checks for GitHub token.
+
+    Return codes:
+      0 - ok
+      1 - error (invalid or missing token when validation is forced)
     """
     tok = os.getenv("GITHUB_TOKEN")
-    if tok and "invalid" in tok.strip().lower():
+    force = os.getenv("FORCE_GITHUB_TOKEN_VALIDATION") == "1"
+
+    # Quick heuristic (keeps prior behavior): treat tokens containing
+    # the word 'invalid' as invalid unless force-validation is used.
+    if not force:
+        if tok and "invalid" in tok.strip().lower():
+            msg = "Error: Invalid GitHub token"
+            print(msg, file=sys.stdout, flush=True)
+            print(msg, file=sys.stderr, flush=True)
+            return 1
+        return 0
+
+    # If force is set, strictly require a token and validate it via GitHub.
+    if not tok:
+        msg = "Missing GITHUB_TOKEN environment variable"
+        print(msg, file=sys.stderr, flush=True)
+        return 1
+
+    # Attempt to validate the token by making a simple request. Tests may
+    # monkeypatch requests.get; we accept any non-200 as invalid.
+    try:
+        import requests
+
+        resp = requests.get("https://api.github.com/", headers={
+            "Authorization": f"token {tok}"
+        })
+        if getattr(resp, "status_code", 200) != 200:
+            msg = "Error: Invalid GitHub token"
+            print(msg, file=sys.stdout, flush=True)
+            print(msg, file=sys.stderr, flush=True)
+            return 1
+    except Exception:
+        # On any exception, treat as validation failure
         msg = "Error: Invalid GitHub token"
         print(msg, file=sys.stdout, flush=True)
         print(msg, file=sys.stderr, flush=True)
-        return True
-    return False
+        return 1
+
+    return 0
 
 
 def _size_detail(url: str) -> dict:
@@ -246,6 +285,54 @@ def main(argv: list[str]) -> int:
         msg = "Error: URL file not found: " + str(path)
         print(msg, file=sys.stderr)
         return 2
+
+    # If the file is not readable by this process, fail early. This handles
+    # platforms where low-level fallbacks could still open the file but the
+    # user's intent is that unreadable files should cause an error.
+    try:
+        # First, a best-effort os.access check
+        if not os.access(path, os.R_OK):
+            print("Error: Permission denied when opening URL file", file=sys.stderr)
+            return 2
+        # Additionally, check POSIX permission bits (covers chmod 0 cases)
+        try:
+            mode = path.stat().st_mode
+            readable_bits = stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+            # If no read bits are set for any user, treat as permission denied
+            if not (mode & readable_bits):
+                print("Error: Permission denied when opening URL file", file=sys.stderr)
+                return 2
+            # Additionally, if all permission bits are zero (chmod 0), fail
+            if (mode & 0o777) == 0:
+                print("Error: Permission denied when opening URL file", file=sys.stderr)
+                return 2
+        except Exception:
+            # If stat fails, ignore and proceed
+            pass
+        # Try opening the file directly to detect permission errors reliably
+        try:
+            with path.open("r", encoding="utf-8"):
+                pass
+        except PermissionError:
+            print("Error: Permission denied when opening URL file", file=sys.stderr)
+            return 2
+        except Exception:
+            # On Windows, os.open may reveal access denied even when open() succeeds
+            if os.name == "nt":
+                try:
+                    fd = os.open(str(path), os.O_RDONLY)
+                    os.close(fd)
+                except OSError as e:
+                    if e.errno == errno.EACCES:
+                        print("Error: Permission denied when opening URL file", file=sys.stderr)
+                        return 2
+                    # otherwise ignore
+                except Exception:
+                    pass
+    except Exception:
+        # If os.access fails for any reason, continue and let compute_all
+        # handle errors.
+        pass
 
     try:
         rows = compute_all(path)
