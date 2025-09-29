@@ -8,3 +8,6 @@ pytest-cov
 
 # Type Checking
 mypy
+
+# HTTP requests
+requests
