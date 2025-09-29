@@ -19,16 +19,14 @@ def main(argv: list[str] | None = None) -> int:
         try:
             _early_env_exits()
         except SystemExit as e:
-            return int(e.code)  # propagate non-zero exit
+            # mypy-safe normalization of exit code
+            code = e.code if isinstance(e.code, int) else 1
+            return code
         return 0
 
-    # normal startup
     _early_env_exits()
 
-    # TODO: your actual CLI logic goes here. Make sure to return an int.
-    # If you already compute a status code 'rc', return rc at the end.
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
