@@ -2,20 +2,18 @@
 from __future__ import annotations
 
 import sys
-from urllib.parse import urlparse  # ← add this
+from urllib.parse import urlparse
 
 from src.logging_utils import setup_logging
 
 
 def _name_from_url(url: str) -> str:
     """
-    Heuristically extract a model/package name from a URL.
-
+    Extract a model/package name from a URL.
     Examples:
-      https://huggingface.co/bert-base-uncased    -> "bert-base-uncased"
-      https://huggingface.co/google/t5-small      -> "t5-small"
-      https://github.com/org/repo                 -> "repo"
-      https://pypi.org/project/black/             -> "black"
+      https://huggingface.co/bert-base-uncased -> bert-base-uncased
+      https://github.com/org/repo(.git)       -> repo
+      https://pypi.org/project/black/         -> black
     """
     try:
         u = urlparse(url)
@@ -28,12 +26,16 @@ def _name_from_url(url: str) -> str:
             name = name[:-4]
         return name.lower()
     except Exception:
-        # Very defensive fallback
         return url.rstrip("/").split("/")[-1].lower()
 
 
+def _early_env_exits() -> None:
+    """Configure logging early; exits(2) if LOG_FILE is invalid."""
+    setup_logging()
+
+
 def main(argv: list[str] | None = None) -> int:
-    """CLI entrypoint. Return 0 on success; nonzero on error."""
+    """CLI entrypoint. Return 0 on success; non-zero on error."""
     argv = list(sys.argv[1:] if argv is None else argv)
 
     if "--just-init" in argv:
@@ -45,6 +47,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     _early_env_exits()
+    # TODO: existing CLI logic (return proper code)
     return 0
 
 
