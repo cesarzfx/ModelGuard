@@ -1,4 +1,3 @@
-from src.main import _size_detail
 
 def test_size_detail_bert():
     d = _size_detail("https://huggingface.co/bert-base-uncased")
