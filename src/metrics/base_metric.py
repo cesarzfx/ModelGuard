@@ -29,7 +29,7 @@ class BaseMetric:
         return ""
 
     def _glob(self, base: Path, patterns: List[str]) -> List[Path]:
-        files = []
+        files: list[Path] = []
         for pattern in patterns:
             files.extend(base.glob(pattern))
         return list(files)
