@@ -147,7 +147,7 @@ def _early_env_exits() -> int:
     # Attempt to validate the token by making a simple request. Tests may
     # monkeypatch requests.get; we accept any non-200 as invalid.
     try:
-        import requests
+        import requests  # type: ignore[import]
 
         resp = requests.get("https://api.github.com/", headers={
             "Authorization": f"token {tok}"
