@@ -4,8 +4,8 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from logging import handlers
 import tempfile
+from logging import handlers
 from pathlib import Path
 from typing import NoReturn
 
