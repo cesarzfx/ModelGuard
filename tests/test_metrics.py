@@ -74,11 +74,11 @@ def test_early_env_exits():
 
     # Test with valid token
     os.environ["GITHUB_TOKEN"] = "valid_token"
-    assert _early_env_exits() is False
+    assert _early_env_exits() == 0
 
     # Test with invalid token
     os.environ["GITHUB_TOKEN"] = "INVALID"
-    assert _early_env_exits() is True
+    assert _early_env_exits() == 1
 
     # Clean up
     os.environ.pop("GITHUB_TOKEN", None)

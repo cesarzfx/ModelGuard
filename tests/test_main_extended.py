@@ -90,7 +90,7 @@ def test_main_with_exception():
 def test_early_env_exits_with_valid_token():
     """Test _early_env_exits with a valid GitHub token."""
     os.environ["GITHUB_TOKEN"] = "valid_token"
-    assert _early_env_exits() is False
+    assert _early_env_exits() == 0
     os.environ.pop("GITHUB_TOKEN", None)
 
 
@@ -98,7 +98,7 @@ def test_early_env_exits_with_invalid_token(capsys):
     """Test _early_env_exits with an invalid GitHub token."""
     os.environ["GITHUB_TOKEN"] = "INVALID"
     result = _early_env_exits()
-    assert result is True
+    assert result == 1
 
     captured = capsys.readouterr()
     # Only check stderr, not stdout

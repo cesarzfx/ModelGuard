@@ -54,14 +54,14 @@ def _name_from_url(url: str) -> str:
     return (base or "artifact").lower()
 
 
-def _early_env_exits() -> bool:
+def _early_env_exits() -> int:
     tok = os.getenv("GITHUB_TOKEN", "").strip()
     if tok == "INVALID":
         msg = "Error: Invalid GitHub token"
         print(msg, file=sys.stderr, flush=True)
         sys.stderr.flush()  # Make sure stderr is flushed
-        return True
-    return False
+        return 1  # Non-zero exit code for error
+    return 0
 
 
 def _size_detail(url: str) -> dict:
@@ -223,8 +223,9 @@ def main(argv: list[str]) -> int:
     except Exception:
         pass  # do not fail if LOG_FILE is bad
 
-    if _early_env_exits():
-        return 0
+    env_exit_code = _early_env_exits()
+    if env_exit_code != 0:
+        return env_exit_code
 
     if len(argv) != 2:
         print("Usage: python -m src.main <url_file>", file=sys.stderr)
