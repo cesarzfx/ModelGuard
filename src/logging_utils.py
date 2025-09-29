@@ -6,6 +6,7 @@ import os
 import sys
 from logging import handlers
 from pathlib import Path
+from typing import NoReturn
 
 _SILENT_SENTINEL = 100
 
@@ -25,33 +26,37 @@ def _parse_level(raw: str | None) -> int | None:
     return None
 
 
-def _fail_log_path(msg: str) -> "NoReturn":
+def _fail_log_path(msg: str) -> NoReturn:
     print(f"Invalid LOG_FILE path: {msg}", file=sys.stderr)
     sys.exit(2)
 
 
 def _validate_log_path(p: Path) -> Path:
     # Parent must exist and be a directory (do NOT auto-create)
-    if not p.parent.exists() or not p.parent.is_dir():
-        _fail_log_path(f"parent does not exist: {p.parent}")
+    parent = p.parent
+    if not parent.exists() or not parent.is_dir():
+        _fail_log_path(f"parent does not exist: {parent}")
+
     # Parent must be writable
     try:
-        test = p.parent / ".wtest"
+        test = parent / ".wtest"
         with test.open("w", encoding="utf-8"):
             pass
         test.unlink(missing_ok=True)
-    except Exception as e:
-        _fail_log_path(f"parent not writable: {p.parent} ({e.__class__.__name__})")
+    except Exception as exc:  # noqa: BLE001
+        _fail_log_path(f"parent not writable: {parent} ({exc.__class__.__name__})")
+
     # File must be appendable/creatable
     try:
         with p.open("a", encoding="utf-8"):
             pass
-    except Exception as e:
-        _fail_log_path(f"cannot open for append: {p} ({e.__class__.__name__})")
+    except Exception as exc:  # noqa: BLE001
+        _fail_log_path(f"cannot open for append: {p} ({exc.__class__.__name__})")
+
     return p
 
 
-def setup_logging():
+def setup_logging() -> logging.Logger:
     lvl = _parse_level(os.getenv("LOG_LEVEL"))
     if lvl == _SILENT_SENTINEL:
         logging.disable(_SILENT_SENTINEL)
@@ -63,7 +68,7 @@ def setup_logging():
     logger.setLevel(lvl or logging.INFO)
     logger.handlers[:] = []
 
-    # Always have a StreamHandler for stderr
+    # Always stderr stream handler
     sh = logging.StreamHandler()
     sh.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
     logger.addHandler(sh)
@@ -72,9 +77,13 @@ def setup_logging():
     if log_path:
         p = _validate_log_path(Path(log_path))
         fh = handlers.RotatingFileHandler(
-            p, maxBytes=1_000_000, backupCount=1, encoding="utf-8"
+            p,
+            maxBytes=1_000_000,
+            backupCount=1,
+            encoding="utf-8",
         )
-        fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        fmt = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+        fh.setFormatter(logging.Formatter(fmt))
         logger.addHandler(fh)
 
     return logger

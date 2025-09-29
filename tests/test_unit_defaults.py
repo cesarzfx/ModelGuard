@@ -1,18 +1,27 @@
-import json
+# tests/test_unit_defaults.py
+from src.main import _unit
 
 
-def test_defaults_for_bert_ranges():
+def test_defaults_for_bert_ranges() -> None:
     url = "https://huggingface.co/bert-base-uncased"
     assert _unit(url, "license") == 1.0
-    assert 0.70 <= _unit(url, "code_quality") <= 0.85
-    assert 0.70 <= _unit(url, "dataset_quality") <= 0.90
-    assert 0.70 <= _unit(url, "dataset_and_code_score") <= 0.90
+    cq = _unit(url, "code_quality")
+    dq = _unit(url, "dataset_quality")
+    dc = _unit(url, "dataset_and_code_score")
+    assert 0.70 <= cq <= 0.85
+    assert 0.70 <= dq <= 0.90
+    assert 0.70 <= dc <= 0.90
 
-def test_defaults_for_other_refs_in_range():
-    for name in ["gpt2", "t5-small", "resnet50"]:
+
+def test_defaults_for_other_refs_in_range() -> None:
+    names = ["gpt2", "t5-small", "resnet50"]
+    for name in names:
         url = f"https://example.com/{name}"
-        # should not raise; values clamped into [0,1]
-        for k in ("license","code_quality","dataset_quality",
-                  "dataset_and_code_score"):
-            v = _unit(url, k)
+        for kind in (
+            "license",
+            "code_quality",
+            "dataset_quality",
+            "dataset_and_code_score",
+        ):
+            v = _unit(url, kind)
             assert 0.0 <= v <= 1.0
