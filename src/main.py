@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+
+
 from __future__ import annotations
 
 import json
@@ -9,16 +11,19 @@ from pathlib import Path
 from statistics import fmean
 from time import perf_counter
 
+
 try:
     from .logging_utils import setup_logging
 except Exception:  # pragma: no cover
     def setup_logging() -> None:
         return
 
+
 try:
     from .metrics.net_score import NetScore
 except Exception:
     from metrics.net_score import NetScore  # type: ignore
+
 
 
 def iter_urls(path: Path):
@@ -111,6 +116,7 @@ def _early_env_exits() -> bool:
 
 
 def _size_detail(url: str) -> dict:
+
     return {
         "raspberry_pi": _unit(url, "sz_rpi"),
         "jetson_nano": _unit(url, "sz_nano"),
@@ -124,6 +130,7 @@ def _size_scalar(detail: dict) -> float:
         return float(min(1.0, max(0.0, fmean(detail.values()))))
     except Exception:
         return 0.0
+
 
 
 def _safe_combine(ns: NetScore, scalars: dict, size_detail: dict) -> float:
@@ -151,9 +158,17 @@ def _record(ns: NetScore, url: str) -> dict:
     ramp = _unit(url, "ramp_up_time")
     bus = _unit(url, "bus_factor")
     perf = _unit(url, "performance_claims")
+
     lic = _unit(url, "license")
+    lic_latency = _lat_ms(t0_lic)
+
+    t0_cq = perf_counter()
     cq = _unit(url, "code_quality")
+    cq_latency = _lat_ms(t0_cq)
+
+    t0_dq = perf_counter()
     dq = _unit(url, "dataset_quality")
+
     dac = fmean([cq, dq])
 
     sz_detail = _size_detail(url)
@@ -170,8 +185,32 @@ def _record(ns: NetScore, url: str) -> dict:
 
     net = _safe_combine(ns, scores_for_net, sz_detail)
 
-    return {
+
+    t0_sz = perf_counter()
+    sz_detail = _size_detail(url)
+    size_latency = _lat_ms(t0_sz)
+
+    scores_for_net = {
+        "ramp_up_time": ramp,
+        "bus_factor": bus,
+        "performance_claims": perf,
+        "license": lic,
+        "code_quality": cq,
+        "dataset_quality": dq,
+        "dataset_and_code_score": dac,
+    }
+
+    # Net score latency is the sum of all metric latencies (including size)
+    net_score_latency = (
+        ramp_latency + bus_latency + perf_latency + lic_latency +
+        cq_latency + dq_latency + dac_latency + size_latency
+    )
+
+    net = ns.combine(scores_for_net, sz_detail)
+
+    rec = {
         "url": url,
+
         "name": _name_from_url(url),
         "category": "CODE",
         "net_score": net,
@@ -192,20 +231,25 @@ def _record(ns: NetScore, url: str) -> dict:
         "dataset_quality_latency": _lat_ms(t0),
         "code_quality": cq,
         "code_quality_latency": _lat_ms(t0),
+
     }
+    return rec
 
 
 def compute_all(path: Path) -> list[dict]:
     rows: list[dict] = []
     ns = NetScore(str(path))
     for url in iter_urls(path):
+
         rows.append(_record(ns, url))
+
     return rows
 
 
 def _print_ndjson(rows: list[dict]) -> None:
     for row in rows:
         print(json.dumps(row, separators=(",", ":")))
+
 
 
 def main(argv: list[str]) -> int:
@@ -226,6 +270,7 @@ def main(argv: list[str]) -> int:
     if not path.exists():
         print(f"Error: URL file not found: {path}", file=sys.stderr)
         return 2
+
 
     try:
         rows = compute_all(path)
