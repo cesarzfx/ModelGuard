@@ -57,7 +57,7 @@ def _name_from_url(url: str) -> str:
 def _early_env_exits() -> int:
     tok = os.getenv("GITHUB_TOKEN", "").strip()
     if tok == "INVALID":
-        msg = "Error: Invalid GitHub token"
+        msg = "Invalid GitHub Token Test failed!"
         print(msg, file=sys.stderr, flush=True)
         sys.stderr.flush()  # Make sure stderr is flushed
         return 1  # Non-zero exit code for error
